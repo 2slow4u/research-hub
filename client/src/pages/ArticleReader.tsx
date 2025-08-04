@@ -74,8 +74,10 @@ export default function ArticleReader() {
     mutationFn: async (annotationId: string) => {
       return await apiRequest('DELETE', `/api/annotations/${annotationId}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, annotationId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/content', id, 'annotations'] });
+      // Also update local state immediately for better UX
+      setActiveAnnotations(prev => prev.filter(ann => ann.id !== annotationId));
       toast({
         title: "Annotation deleted",
         description: "The annotation has been removed.",
@@ -95,7 +97,10 @@ export default function ArticleReader() {
       setTimeout(() => {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
-          setShowTooltip(null);
+          // Only clear tooltip if no annotation form is open
+          if (!annotationForm) {
+            setShowTooltip(null);
+          }
           return;
         }
 
@@ -104,14 +109,15 @@ export default function ArticleReader() {
 
         if (selectedText.length > 0 && contentRef.current?.contains(range.commonAncestorContainer)) {
           const rect = range.getBoundingClientRect();
-          setShowTooltip({
-            x: rect.left + rect.width / 2,
-            y: rect.top - 10,
-            selectedText,
-            range,
-          });
-        } else {
-          setShowTooltip(null);
+          // If annotation form is open, don't override the tooltip
+          if (!annotationForm) {
+            setShowTooltip({
+              x: rect.left + rect.width / 2,
+              y: rect.top - 10,
+              selectedText,
+              range,
+            });
+          }
         }
       }, 100);
     };
@@ -119,19 +125,13 @@ export default function ArticleReader() {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Element;
       
-      // Don't close tooltip when clicking on annotation UI
+      // Don't close anything when clicking on annotation UI elements
       if (target?.closest('.selection-tooltip') || target?.closest('.annotation-form')) {
         return;
       }
       
-      // Close tooltip if no annotation form is open
-      if (!annotationForm) {
-        setShowTooltip(null);
-      }
-      
-      // Close annotation form only if clicking outside
-      if (annotationForm && !target?.closest('.annotation-form')) {
-        setAnnotationForm(null);
+      // Only close tooltip if no annotation form is open
+      if (!annotationForm && showTooltip) {
         setShowTooltip(null);
       }
     };
@@ -307,11 +307,13 @@ export default function ArticleReader() {
                   className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed"
                   style={{ 
                     userSelect: 'text', 
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word'
+                    whiteSpace: 'pre-line',
+                    wordBreak: 'break-word',
+                    lineHeight: '1.7'
                   }}
-                  dangerouslySetInnerHTML={{ __html: article.content?.replace(/\n/g, '<br>') || article.content }}
-                />
+                >
+                  {article.content}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -420,7 +422,8 @@ export default function ArticleReader() {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setAnnotationForm(null);
                 setShowTooltip(null);
               }}
@@ -437,12 +440,16 @@ export default function ArticleReader() {
           <Textarea
             placeholder={`Enter your ${annotationForm.type}...`}
             value={annotationForm.content}
-            onChange={(e) => setAnnotationForm({
-              ...annotationForm,
-              content: e.target.value
-            })}
+            onChange={(e) => {
+              e.stopPropagation();
+              setAnnotationForm({
+                ...annotationForm,
+                content: e.target.value
+              });
+            }}
             onKeyDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
+            onFocus={(e) => e.stopPropagation()}
             className="mb-3 min-h-[80px]"
             autoFocus
           />
@@ -451,7 +458,8 @@ export default function ArticleReader() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setAnnotationForm(null);
                 setShowTooltip(null);
               }}
@@ -460,7 +468,10 @@ export default function ArticleReader() {
             </Button>
             <Button
               size="sm"
-              onClick={handleSaveAnnotation}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSaveAnnotation();
+              }}
               disabled={!annotationForm.content.trim()}
             >
               <Save className="h-4 w-4 mr-2" />
