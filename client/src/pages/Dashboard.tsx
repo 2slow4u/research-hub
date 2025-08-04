@@ -33,41 +33,52 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['/api/dashboard/stats'],
     enabled: isAuthenticated,
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
+    staleTime: 0, // Always refetch to avoid cache issues
+    gcTime: 0, // Don't cache results
   });
 
-  const { data: workspaces, isLoading: workspacesLoading } = useQuery({
+  // Handle stats errors
+  useEffect(() => {
+    if (statsError && isUnauthorizedError(statsError as Error)) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [statsError, toast]);
+
+  // Debug stats data
+  useEffect(() => {
+    if (stats) {
+      console.log('Dashboard stats received:', stats);
+    }
+  }, [stats]);
+
+  const { data: workspaces, isLoading: workspacesLoading, error: workspacesError } = useQuery({
     queryKey: ['/api/workspaces'],
     enabled: isAuthenticated,
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
+
+  // Handle workspaces errors
+  useEffect(() => {
+    if (workspacesError && isUnauthorizedError(workspacesError as Error)) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [workspacesError, toast]);
 
   const { data: activities } = useQuery({
     queryKey: ['/api/activities'],
@@ -128,7 +139,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">Active Workspaces</p>
                   <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                    {statsLoading ? '-' : stats?.activeWorkspaces || 0}
+                    {statsLoading ? '-' : (stats as any)?.activeWorkspaces || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -142,7 +153,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">Content Items</p>
                   <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                    {statsLoading ? '-' : stats?.contentItems || 0}
+                    {statsLoading ? '-' : (stats as any)?.contentItems || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
@@ -156,7 +167,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">Generated Summaries</p>
                   <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                    {statsLoading ? '-' : stats?.summaries || 0}
+                    {statsLoading ? '-' : (stats as any)?.summaries || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
@@ -170,7 +181,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">Sources Monitored</p>
                   <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                    {statsLoading ? '-' : stats?.sourcesMonitored || 0}
+                    {statsLoading ? '-' : (stats as any)?.sourcesMonitored || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">

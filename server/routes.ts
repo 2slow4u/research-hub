@@ -33,6 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const stats = await storage.getUserStats(userId);
+      console.log(`Dashboard stats for user ${userId}:`, stats);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching stats:", error);
