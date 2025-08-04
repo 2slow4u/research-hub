@@ -75,6 +75,7 @@ export const contentItems = pgTable("content_items", {
   sourceId: varchar("source_id").references(() => sources.id),
   title: varchar("title").notNull(),
   content: text("content").notNull(),
+  htmlContent: text("html_content"), // Rich HTML content with images and formatting
   url: varchar("url"),
   publishedAt: timestamp("published_at"),
   relevanceScore: integer("relevance_score").default(0),

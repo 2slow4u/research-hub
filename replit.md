@@ -48,6 +48,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 4, 2025)
 
+- **HTML Content Rendering**: Complete implementation of rich HTML content display with image preservation
+  - Added htmlContent field to contentItems schema for storing rich HTML content with images
+  - Enhanced ContentExtractor service to extract and preserve HTML content alongside text content
+  - Implemented proper image URL conversion (relative to absolute) for cross-site compatibility
+  - Added HTML sanitization to remove dangerous elements while preserving safe formatting
+  - Updated ArticleReader to render HTML content using dangerouslySetInnerHTML for rich display
+  - Enhanced image styling with responsive design and proper margins
+  - Links automatically open in new tabs with security attributes
+  - Telegram bot integration updated to save both text and HTML content
+  - Database schema migration completed successfully
+
+## Previous Changes (August 4, 2025)
+
 - **Enhanced Relevance Scoring System**: Complete overhaul of content relevance scoring algorithm
   - Added purpose field to workspace schema for better context-aware scoring
   - New scoring algorithm considers keywords (0-60 points), purpose alignment (0-30 points), and content quality (0-10 points)

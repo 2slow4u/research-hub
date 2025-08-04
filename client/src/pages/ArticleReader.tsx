@@ -307,13 +307,13 @@ export default function ArticleReader() {
                   className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed"
                   style={{ 
                     userSelect: 'text', 
-                    whiteSpace: 'pre-line',
                     wordBreak: 'break-word',
                     lineHeight: '1.7'
                   }}
-                >
-                  {article.content}
-                </div>
+                  dangerouslySetInnerHTML={{ 
+                    __html: (article as any).htmlContent || article.content.replace(/\n/g, '<br/>') 
+                  }}
+                />
               </CardContent>
             </Card>
           </div>

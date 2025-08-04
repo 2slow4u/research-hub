@@ -289,6 +289,7 @@ Need help? Visit the web app or contact support.
             workspaceId: connection.defaultWorkspaceId,
             title: extractedData.title,
             content: extractedData.content,
+            htmlContent: extractedData.htmlContent,
             sourceId: null, // Will be filled later if we have source mapping
             url: extractedData.url,
             relevanceScore

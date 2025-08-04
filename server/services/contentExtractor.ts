@@ -3,6 +3,7 @@ import { JSDOM } from 'jsdom';
 export interface ExtractedContent {
   title: string;
   content: string;
+  htmlContent?: string; // New field for HTML content with images
   url?: string;
   source?: string;
   summary?: string;
@@ -31,8 +32,9 @@ export class ContentExtractor {
       // Extract title
       let title = this.extractTitle(document);
       
-      // Extract main content
+      // Extract main content (both text and HTML)
       let content = this.extractContent(document);
+      let htmlContent = this.extractHtmlContent(document, url);
       
       // Extract metadata
       const publishedAt = this.extractPublishedDate(document);
@@ -42,6 +44,7 @@ export class ContentExtractor {
       return {
         title: title || 'Untitled',
         content: content || 'No content extracted',
+        htmlContent: htmlContent || content, // Fallback to text if HTML extraction fails
         publishedAt,
         author,
         excerpt,
@@ -122,6 +125,102 @@ export class ContentExtractor {
     }
 
     return '';
+  }
+
+  private extractHtmlContent(document: Document, baseUrl?: string): string {
+    // Try to find main content area
+    const contentSelectors = [
+      'article',
+      '.content',
+      '.post-content', 
+      '.article-content',
+      '.entry-content',
+      '.post-body',
+      '.article-body',
+      'main',
+      '[role="main"]'
+    ];
+
+    for (const selector of contentSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        // Clone the element to avoid modifying the original
+        const clonedElement = element.cloneNode(true) as Element;
+        
+        // Remove unwanted elements but keep content structure
+        const unwantedElements = clonedElement.querySelectorAll(
+          'script, style, nav, header, footer, aside, .navigation, .sidebar, .menu, .ads, .advertisement, .comments'
+        );
+        unwantedElements.forEach(el => el.remove());
+        
+        // Process images to ensure they have absolute URLs
+        const images = clonedElement.querySelectorAll('img');
+        images.forEach(img => {
+          const src = img.getAttribute('src');
+          if (src && baseUrl) {
+            // Convert relative URLs to absolute
+            if (src.startsWith('/')) {
+              const urlObj = new URL(baseUrl);
+              img.setAttribute('src', `${urlObj.protocol}//${urlObj.host}${src}`);
+            } else if (!src.startsWith('http')) {
+              try {
+                const absoluteUrl = new URL(src, baseUrl);
+                img.setAttribute('src', absoluteUrl.href);
+              } catch (e) {
+                // Keep original src if URL parsing fails
+              }
+            }
+          }
+          
+          // Add responsive styling
+          img.setAttribute('style', 'max-width: 100%; height: auto; border-radius: 8px; margin: 16px 0;');
+        });
+
+        // Process links to ensure they open in new tabs
+        const links = clonedElement.querySelectorAll('a');
+        links.forEach(link => {
+          link.setAttribute('target', '_blank');
+          link.setAttribute('rel', 'noopener noreferrer');
+        });
+
+        // Clean up the HTML content
+        const htmlContent = clonedElement.innerHTML;
+        if (htmlContent && htmlContent.trim().length > 100) {
+          return this.sanitizeHtml(htmlContent);
+        }
+      }
+    }
+
+    // Fallback to body content
+    const body = document.querySelector('body');
+    if (body) {
+      const clonedBody = body.cloneNode(true) as Element;
+      
+      // Remove common non-content elements
+      const elementsToRemove = clonedBody.querySelectorAll(
+        'script, style, nav, header, footer, aside, .navigation, .sidebar, .menu, .ads, .advertisement'
+      );
+      elementsToRemove.forEach(el => el.remove());
+      
+      return this.sanitizeHtml(clonedBody.innerHTML);
+    }
+
+    return '';
+  }
+
+  private sanitizeHtml(html: string): string {
+    // Basic HTML sanitization - keep safe tags and remove dangerous ones
+    const allowedTags = [
+      'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'strong', 'b', 'em', 'i', 'u', 'br', 'img', 'a',
+      'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
+      'table', 'thead', 'tbody', 'tr', 'td', 'th'
+    ];
+    
+    // Remove script, style, and other dangerous elements
+    const dangerousPattern = /<(script|style|iframe|object|embed|form|input|button)[^>]*>.*?<\/\1>|<(script|style|iframe|object|embed|form|input|button)[^>]*\/?>|on\w+\s*=\s*["|'][^"']*["|']/gi;
+    
+    return html.replace(dangerousPattern, '');
   }
 
   private extractPublishedDate(document: Document): Date | undefined {
