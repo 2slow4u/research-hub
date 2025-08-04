@@ -138,6 +138,10 @@ export interface IStorage {
 
   // Content operations (add delete)
   deleteContentItem(contentItemId: string, userId: string): Promise<void>;
+  
+  // Count operations
+  getWorkspaceContentCount(workspaceId: string): Promise<number>;
+  getWorkspaceSummaryCount(workspaceId: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -751,6 +755,28 @@ export class DatabaseStorage implements IStorage {
     });
 
     return stats;
+  }
+
+  // Count operations
+  async getWorkspaceContentCount(workspaceId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(contentItems)
+      .where(eq(contentItems.workspaceId, workspaceId));
+    return result.count;
+  }
+
+  async getWorkspaceSummaryCount(workspaceId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(summaries)
+      .where(
+        and(
+          eq(summaries.workspaceId, workspaceId),
+          eq(summaries.isDeleted, false)
+        )
+      );
+    return result.count;
   }
 
   // Annotation operations

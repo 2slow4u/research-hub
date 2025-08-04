@@ -49,13 +49,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get content counts for each workspace
       const workspacesWithStats = await Promise.all(
         workspaces.map(async (workspace) => {
-          const content = await storage.getWorkspaceContent(workspace.id, 1);
-          const summaries = await storage.getWorkspaceSummaries(workspace.id);
+          const contentCount = await storage.getWorkspaceContentCount(workspace.id);
+          const summaryCount = await storage.getWorkspaceSummaryCount(workspace.id);
           return {
             ...workspace,
             _count: {
-              contentItems: content.length,
-              summaries: summaries.length,
+              contentItems: contentCount,
+              summaries: summaryCount,
             },
           };
         })
@@ -76,13 +76,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get content counts for each workspace
       const workspacesWithStats = await Promise.all(
         workspaces.map(async (workspace) => {
-          const content = await storage.getWorkspaceContent(workspace.id, 1);
-          const summaries = await storage.getWorkspaceSummaries(workspace.id);
+          const contentCount = await storage.getWorkspaceContentCount(workspace.id);
+          const summaryCount = await storage.getWorkspaceSummaryCount(workspace.id);
           return {
             ...workspace,
             _count: {
-              contentItems: content.length,
-              summaries: summaries.length,
+              contentItems: contentCount,
+              summaries: summaryCount,
             },
           };
         })
