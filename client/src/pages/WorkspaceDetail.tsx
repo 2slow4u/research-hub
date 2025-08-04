@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { ContentActionModal } from "@/components/Content/ContentActionModal";
 import { ShareSummaryModal } from "@/components/Sharing/ShareSummaryModal";
-import { SharedContentList } from "@/components/Sharing/SharedContentList";
 
 export default function WorkspaceDetail() {
   const { id } = useParams();
@@ -244,11 +243,10 @@ export default function WorkspaceDetail() {
       {/* Main Content */}
       <main className="flex-1 overflow-auto p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="content">Content ({content?.length || 0})</TabsTrigger>
               <TabsTrigger value="summaries">Summaries ({summaries?.length || 0})</TabsTrigger>
               <TabsTrigger value="sources">Sources</TabsTrigger>
-              <TabsTrigger value="shared">Shared</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
             
@@ -492,18 +490,7 @@ export default function WorkspaceDetail() {
               />
             </TabsContent>
             
-            <TabsContent value="shared" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                  Shared Content & Summaries
-                </h3>
-                <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Content and summaries shared from other workspaces
-                </div>
-              </div>
-              
-              <SharedContentList workspaceId={id!} />
-            </TabsContent>
+
             
             <TabsContent value="settings" className="space-y-6">
               <Card>
