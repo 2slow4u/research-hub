@@ -68,3 +68,13 @@ Preferred communication style: Simple, everyday language.
   - Navigation updated to include "Telegram Bot" link in sidebar
   - Bot supports URL extraction, text content saving, and workspace integration
   - User can connect Telegram account and set default workspace for content routing
+
+- **Article Reader Improvements**: Enhanced in-app article reading experience
+  - Fixed backend API routes for content item retrieval and management
+  - Added missing database operations for content items and annotations
+  - Improved text formatting with dangerouslySetInnerHTML and line break preservation
+  - Simplified annotation system to only use highlight and comment functions
+  - Fixed comment input functionality with proper event handling and click outside detection
+  - Added refresh button to reload article content and annotations
+  - Enhanced tooltip interaction to show after text selection without right-click conflicts
+  - Improved UI stability with proper CSS classes for annotation forms

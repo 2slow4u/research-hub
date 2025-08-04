@@ -14,11 +14,12 @@ import {
   ExternalLink,
   Calendar,
   Save,
-  X
+  X,
+  RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Annotation, InsertAnnotation } from "@shared/schema";
+import type { Annotation, InsertAnnotation, ContentItem } from "@shared/schema";
 
 interface AnnotationTooltip {
   x: number;
@@ -39,11 +40,11 @@ export default function ArticleReader() {
   const [activeAnnotations, setActiveAnnotations] = useState<Annotation[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const { data: article, isLoading: articleLoading } = useQuery({
+  const { data: article, isLoading: articleLoading } = useQuery<ContentItem>({
     queryKey: ['/api/content', id],
   });
 
-  const { data: annotations, isLoading: annotationsLoading } = useQuery({
+  const { data: annotations, isLoading: annotationsLoading } = useQuery<Annotation[]>({
     queryKey: ['/api/content', id, 'annotations'],
   });
 
@@ -89,28 +90,48 @@ export default function ArticleReader() {
   }, [annotations]);
 
   useEffect(() => {
-    const handleSelection = (e: MouseEvent) => {
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) return;
+    const handleSelection = () => {
+      // Small delay to ensure selection is complete
+      setTimeout(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+          setShowTooltip(null);
+          return;
+        }
 
-      const range = selection.getRangeAt(0);
-      const selectedText = range.toString().trim();
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString().trim();
 
-      if (selectedText.length > 0 && contentRef.current?.contains(range.commonAncestorContainer)) {
-        const rect = range.getBoundingClientRect();
-        setShowTooltip({
-          x: rect.left + rect.width / 2,
-          y: rect.top - 10,
-          selectedText,
-          range,
-        });
-      } else {
-        setShowTooltip(null);
-      }
+        if (selectedText.length > 0 && contentRef.current?.contains(range.commonAncestorContainer)) {
+          const rect = range.getBoundingClientRect();
+          setShowTooltip({
+            x: rect.left + rect.width / 2,
+            y: rect.top - 10,
+            selectedText,
+            range,
+          });
+        } else {
+          setShowTooltip(null);
+        }
+      }, 100);
     };
 
-    const handleClickOutside = () => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Element;
+      
+      // Don't close tooltip when clicking on annotation UI
+      if (target?.closest('.selection-tooltip') || target?.closest('.annotation-form')) {
+        return;
+      }
+      
+      // Close tooltip if no annotation form is open
       if (!annotationForm) {
+        setShowTooltip(null);
+      }
+      
+      // Close annotation form only if clicking outside
+      if (annotationForm && !target?.closest('.annotation-form')) {
+        setAnnotationForm(null);
         setShowTooltip(null);
       }
     };
@@ -237,6 +258,18 @@ export default function ArticleReader() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ['/api/content', id] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/content', id, 'annotations'] });
+                }}
+                title="Refresh article"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
               {article.url && (
                 <Button variant="ghost" size="sm" asChild>
                   <a href={article.url} target="_blank" rel="noopener noreferrer">
@@ -272,10 +305,13 @@ export default function ArticleReader() {
                 <div 
                   ref={contentRef}
                   className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed"
-                  style={{ userSelect: 'text', whiteSpace: 'pre-wrap' }}
-                >
-                  {article.content}
-                </div>
+                  style={{ 
+                    userSelect: 'text', 
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: article.content?.replace(/\n/g, '<br>') || article.content }}
+                />
               </CardContent>
             </Card>
           </div>
@@ -337,7 +373,7 @@ export default function ArticleReader() {
       {/* Selection Tooltip */}
       {showTooltip && !annotationForm && (
         <div 
-          className="fixed z-50 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg p-2"
+          className="selection-tooltip fixed z-50 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg p-2"
           style={{ 
             left: showTooltip.x - 100, 
             top: showTooltip.y - 60,
@@ -368,7 +404,7 @@ export default function ArticleReader() {
       {/* Annotation Form */}
       {annotationForm && showTooltip && (
         <div 
-          className="fixed z-50 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg p-4 w-80"
+          className="annotation-form fixed z-50 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg p-4 w-80"
           style={{ 
             left: showTooltip.x - 160, 
             top: showTooltip.y + 20
@@ -405,7 +441,10 @@ export default function ArticleReader() {
               ...annotationForm,
               content: e.target.value
             })}
+            onKeyDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             className="mb-3 min-h-[80px]"
+            autoFocus
           />
           
           <div className="flex items-center justify-end space-x-2">
