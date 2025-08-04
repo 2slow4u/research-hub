@@ -25,9 +25,10 @@ import {
   PlayCircle,
   PauseCircle,
   Share,
-  BookOpen
+  BookOpen,
+  ArrowRight
 } from "lucide-react";
-import { ShareContentModal } from "@/components/Sharing/ShareContentModal";
+import { ContentActionModal } from "@/components/Content/ContentActionModal";
 import { ShareSummaryModal } from "@/components/Sharing/ShareSummaryModal";
 import { SharedContentList } from "@/components/Sharing/SharedContentList";
 
@@ -342,12 +343,13 @@ export default function WorkspaceDetail() {
                             >
                               <BookOpen className="h-4 w-4" />
                             </Button>
-                            <ShareContentModal
+                            <ContentActionModal
                               contentItemId={item.id}
-                              workspaceId={id!}
+                              currentWorkspaceId={id!}
+                              contentTitle={item.title}
                               trigger={
-                                <Button variant="ghost" size="sm">
-                                  <Share className="h-4 w-4" />
+                                <Button variant="ghost" size="sm" title="Move or copy content">
+                                  <ArrowRight className="h-4 w-4" />
                                 </Button>
                               }
                             />

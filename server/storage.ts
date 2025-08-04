@@ -294,6 +294,49 @@ export class DatabaseStorage implements IStorage {
     return contentItem;
   }
 
+  async moveContentToWorkspace(contentId: string, targetWorkspaceId: string): Promise<ContentItem> {
+    const [contentItem] = await db
+      .update(contentItems)
+      .set({ 
+        workspaceId: targetWorkspaceId,
+        // Reset relevance score as it might be different in new workspace
+        relevanceScore: 0
+      })
+      .where(eq(contentItems.id, contentId))
+      .returning();
+    return contentItem;
+  }
+
+  async copyContentToWorkspace(contentId: string, targetWorkspaceId: string): Promise<ContentItem> {
+    // Get the original content
+    const [originalContent] = await db
+      .select()
+      .from(contentItems)
+      .where(eq(contentItems.id, contentId));
+
+    if (!originalContent) {
+      throw new Error('Content not found');
+    }
+
+    // Create a copy in the target workspace
+    const [copiedContent] = await db
+      .insert(contentItems)
+      .values({
+        workspaceId: targetWorkspaceId,
+        sourceId: originalContent.sourceId,
+        title: originalContent.title,
+        content: originalContent.content,
+        htmlContent: originalContent.htmlContent,
+        url: originalContent.url,
+        publishedAt: originalContent.publishedAt,
+        relevanceScore: 0, // Reset relevance score for new workspace
+        isProcessed: originalContent.isProcessed,
+      })
+      .returning();
+
+    return copiedContent;
+  }
+
 
 
   // Summary operations

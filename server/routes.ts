@@ -645,7 +645,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Cross-workspace sharing routes
+  // Content move/copy routes
+  app.post('/api/content/:contentId/move', isAuthenticated, async (req: any, res) => {
+    try {
+      const { contentId } = req.params;
+      const { targetWorkspaceId, notes } = req.body;
+      const userId = req.user.claims.sub;
+
+      // Get the content item and verify ownership
+      const content = await storage.getContentItem(contentId);
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+
+      const sourceWorkspace = await storage.getWorkspace(content.workspaceId);
+      const targetWorkspace = await storage.getWorkspace(targetWorkspaceId);
+      
+      if (!sourceWorkspace || sourceWorkspace.userId !== userId || 
+          !targetWorkspace || targetWorkspace.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Move content by updating workspace ID
+      const movedContent = await storage.moveContentToWorkspace(contentId, targetWorkspaceId);
+
+      // Create activity logs
+      await storage.createActivity({
+        userId,
+        workspaceId: content.workspaceId,
+        type: 'content_moved_out',
+        description: `Moved content "${content.title}" to ${targetWorkspace.name}`,
+        metadata: { targetWorkspaceId, notes }
+      });
+
+      await storage.createActivity({
+        userId,
+        workspaceId: targetWorkspaceId,
+        type: 'content_moved_in',
+        description: `Received content "${content.title}" from ${sourceWorkspace.name}`,
+        metadata: { sourceWorkspaceId: content.workspaceId, notes }
+      });
+
+      res.json({ message: "Content moved successfully", content: movedContent });
+    } catch (error: any) {
+      console.error("Error moving content:", error);
+      res.status(500).json({ message: "Failed to move content", error: error.message });
+    }
+  });
+
+  app.post('/api/content/:contentId/copy', isAuthenticated, async (req: any, res) => {
+    try {
+      const { contentId } = req.params;
+      const { targetWorkspaceId, notes } = req.body;
+      const userId = req.user.claims.sub;
+
+      // Get the content item and verify ownership
+      const content = await storage.getContentItem(contentId);
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+
+      const sourceWorkspace = await storage.getWorkspace(content.workspaceId);
+      const targetWorkspace = await storage.getWorkspace(targetWorkspaceId);
+      
+      if (!sourceWorkspace || sourceWorkspace.userId !== userId || 
+          !targetWorkspace || targetWorkspace.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Copy content to target workspace
+      const copiedContent = await storage.copyContentToWorkspace(contentId, targetWorkspaceId);
+
+      // Create activity logs
+      await storage.createActivity({
+        userId,
+        workspaceId: content.workspaceId,
+        type: 'content_copied_from',
+        description: `Copied content "${content.title}" to ${targetWorkspace.name}`,
+        metadata: { targetWorkspaceId, notes }
+      });
+
+      await storage.createActivity({
+        userId,
+        workspaceId: targetWorkspaceId,
+        type: 'content_copied_to',
+        description: `Received copy of "${content.title}" from ${sourceWorkspace.name}`,
+        metadata: { sourceWorkspaceId: content.workspaceId, notes }
+      });
+
+      res.json({ message: "Content copied successfully", content: copiedContent });
+    } catch (error: any) {
+      console.error("Error copying content:", error);
+      res.status(500).json({ message: "Failed to copy content", error: error.message });
+    }
+  });
+
+  // Legacy cross-workspace sharing routes (keeping for backward compatibility)
   app.post('/api/workspaces/:workspaceId/share-content', isAuthenticated, async (req: any, res) => {
     try {
       const { workspaceId } = req.params;
