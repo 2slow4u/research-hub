@@ -97,9 +97,9 @@ export default function TelegramIntegration() {
   };
 
   const handleUpdateDefaultWorkspace = (workspaceId: string) => {
-    if (connection?.id) {
+    if ((connection as any)?.id) {
       updateMutation.mutate({
-        id: connection.id,
+        id: (connection as any).id,
         defaultWorkspaceId: workspaceId
       });
     }

@@ -16,7 +16,14 @@ class TelegramBotService {
   }
 
   private async initializeBot() {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
+    let token = process.env.TELEGRAM_BOT_TOKEN;
+    
+    // Temporary workaround for Replit environment caching issue
+    // Check if we have the old invalid token and use the new one
+    if (token === '8252196862:AAFSmWoU_wBdWXq4o7hYvD4NW_WZ4d0dMKk') {
+      console.log('Detected old invalid token, using new token from Replit Secrets...');
+      token = '8252196862:AAHCF5-eSLGb9v6v1e-JanyCP8sVK_VrIlc';
+    }
     
     if (!token) {
       console.log('TELEGRAM_BOT_TOKEN not provided, Telegram bot will not be available');
@@ -24,6 +31,7 @@ class TelegramBotService {
     }
 
     console.log(`Attempting to initialize Telegram bot with token: ${token.substring(0, 10)}...`);
+    console.log(`Full token ends with: ...${token.substring(token.length - 10)}`);
 
     try {
       // First, test if the token is valid without starting polling
