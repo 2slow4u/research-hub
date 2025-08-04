@@ -63,7 +63,7 @@ export default function CreateWorkspaceModal({ open, onOpenChange }: CreateWorks
         .map(k => k.trim())
         .filter(k => k.length > 0);
       
-      return await apiRequest('POST', '/api/workspaces', {
+      return await apiRequest('/api/workspaces', 'POST', {
         ...data,
         keywords: keywordsArray,
       });
@@ -78,10 +78,11 @@ export default function CreateWorkspaceModal({ open, onOpenChange }: CreateWorks
       form.reset();
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      console.error("Workspace creation error:", error);
       toast({
-        title: "Error",
-        description: "Failed to create workspace. Please try again.",
+        title: "Error creating workspace",
+        description: error.message || "Failed to create workspace. Please try again.",
         variant: "destructive",
       });
     },
