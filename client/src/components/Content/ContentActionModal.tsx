@@ -74,9 +74,14 @@ export function ContentActionModal({
         description: `"${contentTitle}" has been ${actionText} to the selected workspace.`,
       });
       
-      // Invalidate relevant queries
+      // Force immediate refresh of content lists
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces', currentWorkspaceId, 'content'] });
+      queryClient.refetchQueries({ queryKey: ['/api/workspaces', currentWorkspaceId, 'content'] });
+      
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces', variables.targetWorkspaceId, 'content'] });
+      queryClient.refetchQueries({ queryKey: ['/api/workspaces', variables.targetWorkspaceId, 'content'] });
+      
+      // Also refresh workspace counts and dashboard
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       

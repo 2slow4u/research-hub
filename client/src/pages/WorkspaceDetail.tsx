@@ -57,8 +57,11 @@ export default function WorkspaceDetail() {
       return await apiRequest(`/api/content/${contentId}`, 'DELETE');
     },
     onSuccess: () => {
-      // Invalidate multiple queries to ensure UI updates
+      // Force refresh of content list immediately
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces', id, 'content'] });
+      queryClient.refetchQueries({ queryKey: ['/api/workspaces', id, 'content'] });
+      
+      // Also invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
