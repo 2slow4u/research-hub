@@ -308,7 +308,6 @@ export const insertSummarySchema = createInsertSchema(summaries).omit({
 export const insertContentItemSchema = createInsertSchema(contentItems).omit({
   id: true,
   createdAt: true,
-  relevanceScore: true,
   isProcessed: true,
 });
 

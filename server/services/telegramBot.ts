@@ -218,6 +218,7 @@ Need help? Visit the web app or contact support.
       let submissionType = 'text';
       let content = '';
       let extractedData = null;
+      let sourceUrl = null; // Store the URL for later use
 
       if (msg.text) {
         content = msg.text;
@@ -228,13 +229,14 @@ Need help? Visit the web app or contact support.
         
         if (urls && urls.length > 0) {
           submissionType = 'url';
+          sourceUrl = urls[0]; // Store the URL
           
           // Send processing message
           this.bot?.sendMessage(chatId, '🔄 Processing URL...');
           
           try {
-            console.log(`Extracting content from URL: ${urls[0]}`);
-            extractedData = await this.contentExtractor.extractFromUrl(urls[0]);
+            console.log(`Extracting content from URL: ${sourceUrl}`);
+            extractedData = await this.contentExtractor.extractFromUrl(sourceUrl);
             console.log(`Extraction successful. Title: ${extractedData?.title}`);
           } catch (error) {
             console.error('Content extraction failed:', error);
@@ -281,15 +283,17 @@ Need help? Visit the web app or contact support.
             relevanceScore = Math.min(100, relevanceScore + 15);
           }
 
-          await storage.addContentItem({
+          const contentItem = await storage.addContentItem({
             workspaceId: connection.defaultWorkspaceId,
             title: extractedData.title,
             content: extractedData.content,
             htmlContent: extractedData.htmlContent,
             sourceId: null, // Will be filled later if we have source mapping
-            url: urls[0], // Use the original URL from the message
-            relevanceScore
+            url: sourceUrl, // Use the original URL from the message
           });
+
+          // Update relevance score separately
+          await storage.updateContentRelevanceScore(contentItem.id, relevanceScore);
 
           this.bot?.sendMessage(chatId, `✅ Content added to your workspace: "${extractedData.title}"`);
         } catch (error) {
