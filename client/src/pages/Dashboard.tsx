@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import Sidebar from "@/components/Layout/Sidebar";
+
 import WorkspaceCard from "@/components/Workspace/WorkspaceCard";
 import CreateWorkspaceModal from "@/components/Workspace/CreateWorkspaceModal";
 import ActivityFeed from "@/components/Activity/ActivityFeed";
@@ -87,12 +87,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-50 dark:bg-neutral-900">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-6 py-4">
+    <div className="flex flex-col h-full overflow-hidden bg-neutral-50 dark:bg-neutral-900">
+      {/* Header */}
+      <header className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Research Workspaces</h2>
@@ -120,10 +117,10 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
-        </header>
+      </header>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto p-6">
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto p-6">
           {/* Workspace Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white dark:bg-neutral-800 p-6 rounded-xl border border-neutral-200 dark:border-neutral-700">
@@ -232,10 +229,9 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Recent Activity */}
-          <ActivityFeed activities={activities} />
-        </main>
-      </div>
+        {/* Recent Activity */}
+        <ActivityFeed activities={activities} />
+      </main>
 
       <CreateWorkspaceModal 
         open={createModalOpen} 
