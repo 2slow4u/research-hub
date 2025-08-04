@@ -49,6 +49,7 @@ export default function CreateWorkspaceModal({ open, onOpenChange }: CreateWorks
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      purpose: "",
       keywords: "",
       monitoringFrequency: "daily",
     },
@@ -118,6 +119,28 @@ export default function CreateWorkspaceModal({ open, onOpenChange }: CreateWorks
             
             <FormField
               control={form.control}
+              name="purpose"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Purpose (optional)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Describe the goal and focus of this research workspace. This helps improve content relevance scoring." 
+                      rows={2}
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Explain what you want to research and why - this improves content relevance scoring
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
               name="keywords"
               render={({ field }) => (
                 <FormItem>
@@ -143,7 +166,7 @@ export default function CreateWorkspaceModal({ open, onOpenChange }: CreateWorks
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Monitoring Frequency</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || "daily"}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select frequency" />

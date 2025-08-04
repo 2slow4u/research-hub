@@ -64,6 +64,7 @@ export interface IStorage {
   bulkAddContentItems(items: InsertContentItem[]): Promise<ContentItem[]>;
   getContentSinceDate(workspaceId: string, date: Date): Promise<ContentItem[]>;
   deleteContentItem(id: string): Promise<void>;
+  updateContentRelevanceScore(id: string, score: number): Promise<ContentItem>;
   
   // Summary operations
   getWorkspaceSummaries(workspaceId: string): Promise<Summary[]>;
@@ -731,6 +732,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Content operations
+  async updateContentRelevanceScore(contentItemId: string, score: number): Promise<ContentItem> {
+    const [updatedItem] = await db
+      .update(contentItems)
+      .set({ relevanceScore: score })
+      .where(eq(contentItems.id, contentItemId))
+      .returning();
+    return updatedItem;
+  }
+
   async deleteContentItem(contentItemId: string, userId: string): Promise<void> {
     // First verify ownership through workspace
     const [contentItem] = await db

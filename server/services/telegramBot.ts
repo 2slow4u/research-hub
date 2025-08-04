@@ -226,6 +226,23 @@ Need help? Visit the web app or contact support.
       // Add to workspace if extraction was successful
       if (extractedData && connection.defaultWorkspaceId) {
         try {
+          // Get workspace to calculate proper relevance score
+          const workspace = await storage.getWorkspace(connection.defaultWorkspaceId);
+          let relevanceScore = 85; // Default for manually added content
+          
+          if (workspace) {
+            // Use ContentService to calculate proper score
+            const contentService = new (await import('./contentService')).ContentService();
+            relevanceScore = await contentService['calculateRelevanceScore'](
+              extractedData.content,
+              extractedData.title,
+              workspace.keywords,
+              workspace.purpose || undefined
+            );
+            // Add bonus for manual addition
+            relevanceScore = Math.min(100, relevanceScore + 15);
+          }
+
           await storage.addContentItem({
             workspaceId: connection.defaultWorkspaceId,
             title: extractedData.title,
@@ -233,6 +250,7 @@ Need help? Visit the web app or contact support.
             source: extractedData.source || 'telegram-bot',
             url: extractedData.url,
             summary: extractedData.summary,
+            relevanceScore,
             metadata: extractedData
           });
 

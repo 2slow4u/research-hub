@@ -42,9 +42,15 @@ export class ContentService {
       const mockArticles = await this.generateMockContent(keywords);
       
       for (const article of mockArticles) {
-        const relevanceScore = await this.calculateRelevanceScore(article.content, keywords);
+        const workspace = await storage.getWorkspace(workspaceId);
+        const relevanceScore = await this.calculateRelevanceScore(
+          article.content, 
+          article.title, 
+          keywords, 
+          workspace?.purpose || undefined
+        );
         
-        if (relevanceScore > 50) { // Only add relevant content
+        if (relevanceScore >= 30) { // Lower threshold to allow more content through
           contentItems.push({
             workspaceId,
             sourceId: sources[0]?.id, // Use first available source
@@ -98,18 +104,72 @@ export class ContentService {
     return templates.slice(0, Math.min(2, keywords.length));
   }
 
-  private async calculateRelevanceScore(content: string, keywords: string[]): Promise<number> {
-    // Simple relevance scoring based on keyword frequency
-    const contentLower = content.toLowerCase();
+  private async calculateRelevanceScore(
+    content: string, 
+    title: string, 
+    keywords: string[], 
+    purpose?: string
+  ): Promise<number> {
+    const fullText = `${title} ${content}`.toLowerCase();
     let score = 0;
     
+    // Keyword matching (0-60 points)
     for (const keyword of keywords) {
       const keywordLower = keyword.toLowerCase();
-      const matches = (contentLower.match(new RegExp(keywordLower, 'g')) || []).length;
-      score += matches * 10;
+      const titleMatches = (title.toLowerCase().match(new RegExp(keywordLower, 'g')) || []).length;
+      const contentMatches = (content.toLowerCase().match(new RegExp(keywordLower, 'g')) || []).length;
+      
+      // Title matches are worth more
+      score += titleMatches * 8;
+      score += contentMatches * 3;
     }
     
-    return Math.min(100, score + 50); // Base score of 50 + keyword matches
+    // Purpose alignment (0-30 points)
+    if (purpose) {
+      const purposeWords = purpose.toLowerCase().split(/\s+/).filter(word => word.length > 3);
+      for (const word of purposeWords) {
+        const matches = (fullText.match(new RegExp(word, 'g')) || []).length;
+        score += matches * 2;
+      }
+    }
+    
+    // Content quality factors (0-10 points)
+    const contentLength = content.length;
+    if (contentLength > 500) score += 3;
+    if (contentLength > 1000) score += 2;
+    if (title.length > 20) score += 2;
+    if (title.toLowerCase().includes('research') || title.toLowerCase().includes('study')) score += 3;
+    
+    return Math.min(100, Math.max(0, score));
+  }
+
+  // Function to recalculate relevance scores for all content, including annotations
+  async recalculateRelevanceScores(workspaceId: string): Promise<void> {
+    const workspace = await storage.getWorkspace(workspaceId);
+    if (!workspace) return;
+
+    const content = await storage.getWorkspaceContent(workspaceId);
+    
+    for (const item of content) {
+      // Get annotations for this content
+      const annotations = await storage.getContentAnnotations(item.id);
+      
+      // Calculate base score
+      let score = await this.calculateRelevanceScore(
+        item.content, 
+        item.title, 
+        workspace.keywords, 
+        workspace.purpose || undefined
+      );
+      
+      // Add annotation bonus (up to 20 points)
+      const annotationCount = annotations.length;
+      const annotationBonus = Math.min(20, annotationCount * 5);
+      score = Math.min(100, score + annotationBonus);
+      
+      // Update the content item with new score
+      await storage.updateContentRelevanceScore(item.id, score);
+    }
   }
 
   async searchContent(query: string, sources?: string[]) {

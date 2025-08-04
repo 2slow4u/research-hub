@@ -49,6 +49,7 @@ export const workspaces = pgTable("workspaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: varchar("name").notNull(),
+  purpose: text("purpose"), // Purpose/goal of the workspace for better relevance scoring
   keywords: text("keywords").array().notNull(),
   status: workspaceStatusEnum("status").default('active'),
   monitoringFrequency: monitoringFrequencyEnum("monitoring_frequency").default('daily'),

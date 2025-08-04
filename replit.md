@@ -47,6 +47,21 @@ Preferred communication style: Simple, everyday language.
 - **Styling**: Tailwind CSS with custom design system variables and dark mode support
 
 ## Recent Changes (August 4, 2025)
+
+- **Enhanced Relevance Scoring System**: Complete overhaul of content relevance scoring algorithm
+  - Added purpose field to workspace schema for better context-aware scoring
+  - New scoring algorithm considers keywords (0-60 points), purpose alignment (0-30 points), and content quality (0-10 points)
+  - Score range changed from 50-100 to true 0-100 scale for better differentiation
+  - Lowered content inclusion threshold from 50 to 30 to allow more content through initial filtering
+  - Added annotation-based scoring bonus (up to 20 points) - comments and highlights increase relevance
+  - Implemented recalculateRelevanceScores function to update all content scores when workspace purpose changes
+  - Title matches weighted higher than content matches for better relevance detection
+  - Added content quality factors (length, research keywords) to improve scoring accuracy
+  - Updated Telegram bot integration to use new scoring system with manual addition bonus
+  - Enhanced CreateWorkspaceModal to include purpose field with user guidance
+  - API route added for recalculating workspace content scores (/api/workspaces/:id/recalculate-scores)
+
+## Previous Changes (August 4, 2025)
 - **AI Model Configuration System**: Complete implementation of configurable AI provider system
   - Database schema updated with aiModelConfigs and aiUsageLogs tables for tracking configurations and usage
   - AiService created supporting OpenAI, Azure OpenAI, Anthropic, VertexAI, and Gemini providers

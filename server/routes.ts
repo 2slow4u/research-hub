@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { ContentService } from "./services/contentService";
 import { z } from "zod";
 import { insertWorkspaceSchema, insertSummarySchema, insertAnnotationSchema } from "@shared/schema";
 import { ContentService } from "./services/contentService";
@@ -201,6 +202,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching content:", error);
       res.status(500).json({ message: "Failed to fetch content" });
+    }
+  });
+
+  // Recalculate relevance scores for workspace content
+  app.post('/api/workspaces/:id/recalculate-scores', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      const workspace = await storage.getWorkspace(id);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const contentService = new ContentService();
+      await contentService.recalculateRelevanceScores(id);
+      
+      res.json({ message: "Relevance scores recalculated successfully" });
+    } catch (error) {
+      console.error("Error recalculating scores:", error);
+      res.status(500).json({ message: "Failed to recalculate scores" });
     }
   });
 
