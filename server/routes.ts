@@ -1112,21 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/content/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user.claims.sub;
-      
-      await storage.deleteContentItem(id, userId);
-      res.json({ message: "Content deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting content:", error);
-      if (error.message === 'Unauthorized') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      res.status(500).json({ message: "Failed to delete content" });
-    }
-  });
+
 
   // Annotation routes
   app.get('/api/content/:id/annotations', isAuthenticated, async (req: any, res) => {
