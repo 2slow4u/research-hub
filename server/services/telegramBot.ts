@@ -25,13 +25,6 @@ class TelegramBotService {
 
     console.log(`Initializing Telegram bot with token: ${token.substring(0, 10)}...${token.substring(token.length - 6)}`);
 
-    // Handle environment variable caching - use valid token until environment refreshes
-    if (token === '8252196862:AAFSmWoU_wBdWXq4o7hYvD4NW_WZ4d0dMKk') {
-      console.log('Environment still has old token, using valid token until refresh...');
-      await this.initializeWithToken('8252196862:AAHCF5-eSLGb9v6v1e-JanyCP8sVK_VrIlc');
-      return;
-    }
-
     await this.initializeWithToken(token);
   }
 
@@ -189,6 +182,7 @@ Need help? Visit the web app or contact support.
       if (msg.text?.startsWith('/')) return;
 
       const chatId = msg.chat.id.toString();
+      console.log(`Received message from chat ${chatId}: ${msg.text?.substring(0, 100)}...`);
 
       try {
         const connection = await storage.getTelegramConnectionByChatId(chatId);
@@ -239,7 +233,9 @@ Need help? Visit the web app or contact support.
           this.bot?.sendMessage(chatId, '🔄 Processing URL...');
           
           try {
+            console.log(`Extracting content from URL: ${urls[0]}`);
             extractedData = await this.contentExtractor.extractFromUrl(urls[0]);
+            console.log(`Extraction successful. Title: ${extractedData?.title}`);
           } catch (error) {
             console.error('Content extraction failed:', error);
             this.bot?.sendMessage(chatId, '⚠️ Could not extract content from URL, saving as text instead.');
