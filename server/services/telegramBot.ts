@@ -9,10 +9,13 @@ class TelegramBotService {
 
   constructor() {
     this.contentExtractor = new ContentExtractor();
-    this.initializeBot();
+    // Initialize bot asynchronously without blocking constructor
+    this.initializeBot().catch(error => {
+      console.error('Failed to initialize Telegram bot:', error);
+    });
   }
 
-  private initializeBot() {
+  private async initializeBot() {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     
     if (!token) {
@@ -20,8 +23,35 @@ class TelegramBotService {
       return;
     }
 
+    console.log(`Attempting to initialize Telegram bot with token: ${token.substring(0, 10)}...`);
+
     try {
+      // First, test if the token is valid without starting polling
+      const testResponse = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const testResult = await testResponse.json();
+      
+      if (!testResult.ok) {
+        console.error(`Invalid Telegram bot token: ${testResult.description}. Bot will not start.`);
+        console.log('Please update your TELEGRAM_BOT_TOKEN with a valid token from @BotFather');
+        return;
+      }
+      
+      console.log(`Telegram bot verified: @${testResult.result.username}`);
+      
       this.bot = new TelegramBot(token, { polling: true });
+      
+      // Add error handling for the bot
+      this.bot.on('polling_error', (error) => {
+        console.error('Telegram polling error:', error.message);
+        if (error.message.includes('401')) {
+          console.error('Invalid bot token - please check your TELEGRAM_BOT_TOKEN');
+        }
+      });
+
+      this.bot.on('error', (error) => {
+        console.error('Telegram bot error:', error);
+      });
+
       this.setupHandlers();
       this.initialized = true;
       console.log('Telegram bot initialized successfully');

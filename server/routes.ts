@@ -258,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           content: finalContent,
           url: url,
           publishedAt: extractedContent.publishedAt || new Date(),
-          relevanceScore: 85, // Default relevance for manually added content
+          relevanceScore: 85 // Default relevance for manually added content
         });
 
         // Create activity
