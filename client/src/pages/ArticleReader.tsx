@@ -57,6 +57,8 @@ export default function ArticleReader() {
       queryClient.invalidateQueries({ queryKey: ['/api/content', id, 'annotations'] });
       setAnnotationForm(null);
       setShowTooltip(null);
+      // Re-apply highlighting after new annotation
+      setTimeout(() => applyAnnotationsToContent(), 100);
       toast({
         title: "Annotation saved",
         description: "Your annotation has been added to the article.",
@@ -80,6 +82,8 @@ export default function ArticleReader() {
       queryClient.invalidateQueries({ queryKey: ['/api/content', id, 'annotations'] });
       // Also update local state immediately for better UX
       setActiveAnnotations(prev => prev.filter(ann => ann.id !== annotationId));
+      // Re-apply highlighting after deletion
+      setTimeout(() => applyAnnotationsToContent(), 100);
       toast({
         title: "Annotation deleted",
         description: "The annotation has been removed.",
@@ -92,6 +96,76 @@ export default function ArticleReader() {
       setActiveAnnotations(annotations);
     }
   }, [annotations]);
+
+  useEffect(() => {
+    if (article && annotations) {
+      applyAnnotationsToContent();
+    }
+  }, [article, annotations]);
+
+  const applyAnnotationsToContent = () => {
+    if (!contentRef.current || !annotations) return;
+    
+    // Reset content to original state first
+    const content = contentRef.current;
+    const originalHtml = article?.htmlContent || article?.content || '';
+    content.innerHTML = originalHtml;
+    
+    // Apply each annotation as a visual highlight
+    annotations.forEach(annotation => {
+      if (annotation.text && annotation.text.length > 0) {
+        highlightTextInContent(annotation.text, annotation.color || '#fbbf24', annotation.type);
+      }
+    });
+  };
+
+  const highlightTextInContent = (text: string, color: string, type: string) => {
+    if (!contentRef.current) return;
+    
+    const content = contentRef.current;
+    const walker = document.createTreeWalker(
+      content,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    
+    const textNodes: Text[] = [];
+    let node;
+    while (node = walker.nextNode()) {
+      textNodes.push(node as Text);
+    }
+    
+    textNodes.forEach(textNode => {
+      const nodeText = textNode.textContent || '';
+      const index = nodeText.toLowerCase().indexOf(text.toLowerCase());
+      
+      if (index !== -1) {
+        const beforeText = nodeText.substring(0, index);
+        const matchedText = nodeText.substring(index, index + text.length);
+        const afterText = nodeText.substring(index + text.length);
+        
+        const span = document.createElement('span');
+        span.style.backgroundColor = color;
+        span.style.padding = '2px 4px';
+        span.style.borderRadius = '3px';
+        span.style.opacity = type === 'highlight' ? '0.7' : '0.5';
+        span.title = type === 'comment' ? 'Comment annotation' : 'Highlight annotation';
+        span.textContent = matchedText;
+        
+        const parent = textNode.parentNode;
+        if (parent) {
+          if (beforeText) {
+            parent.insertBefore(document.createTextNode(beforeText), textNode);
+          }
+          parent.insertBefore(span, textNode);
+          if (afterText) {
+            parent.insertBefore(document.createTextNode(afterText), textNode);
+          }
+          parent.removeChild(textNode);
+        }
+      }
+    });
+  };
 
   useEffect(() => {
     const handleSelection = () => {
