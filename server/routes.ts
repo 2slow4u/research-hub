@@ -218,6 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: type || 'full',
         focus,
         latestSummary,
+        userId,
       });
 
       // Create activity
@@ -532,6 +533,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       botInitialized: telegramBot.isInitialized(),
       timestamp: new Date().toISOString()
     });
+  });
+
+  // AI Model Configuration routes
+  app.get('/api/ai-configs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const configs = await storage.getAiModelConfigs(userId);
+      
+      // Hide API keys in response for security
+      const safeConfigs = configs.map(config => ({
+        ...config,
+        apiKey: config.apiKey ? `${config.apiKey.substring(0, 8)}...` : null
+      }));
+      
+      res.json(safeConfigs);
+    } catch (error) {
+      console.error('Failed to get AI configs:', error);
+      res.status(500).json({ message: 'Failed to get AI configurations' });
+    }
+  });
+
+  app.post('/api/ai-configs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const configData = { ...req.body, userId };
+      
+      // Validate required fields
+      const { insertAiModelConfigSchema } = await import('@shared/schema');
+      const validatedData = insertAiModelConfigSchema.parse(configData);
+      
+      const config = await storage.createAiModelConfig(validatedData);
+      
+      // Hide API key in response
+      const safeConfig = {
+        ...config,
+        apiKey: config.apiKey ? `${config.apiKey.substring(0, 8)}...` : null
+      };
+      
+      res.status(201).json(safeConfig);
+    } catch (error: any) {
+      console.error('Failed to create AI config:', error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ message: 'Invalid configuration data', errors: error.errors });
+      } else {
+        res.status(500).json({ message: 'Failed to create AI configuration' });
+      }
+    }
+  });
+
+  app.put('/api/ai-configs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      // Verify ownership
+      const existingConfig = await storage.getAiModelConfig(id);
+      if (!existingConfig || existingConfig.userId !== userId) {
+        return res.status(404).json({ message: 'Configuration not found' });
+      }
+      
+      const updateData = { ...req.body, userId };
+      const config = await storage.updateAiModelConfig(id, updateData);
+      
+      // Hide API key in response
+      const safeConfig = {
+        ...config,
+        apiKey: config.apiKey ? `${config.apiKey.substring(0, 8)}...` : null
+      };
+      
+      res.json(safeConfig);
+    } catch (error) {
+      console.error('Failed to update AI config:', error);
+      res.status(500).json({ message: 'Failed to update AI configuration' });
+    }
+  });
+
+  app.delete('/api/ai-configs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      // Verify ownership
+      const existingConfig = await storage.getAiModelConfig(id);
+      if (!existingConfig || existingConfig.userId !== userId) {
+        return res.status(404).json({ message: 'Configuration not found' });
+      }
+      
+      await storage.deleteAiModelConfig(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Failed to delete AI config:', error);
+      res.status(500).json({ message: 'Failed to delete AI configuration' });
+    }
+  });
+
+  // AI Usage Statistics
+  app.get('/api/ai-usage/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const timeframe = req.query.timeframe as 'day' | 'week' | 'month' | undefined;
+      
+      const stats = await storage.getAiUsageStats(userId, timeframe);
+      res.json(stats);
+    } catch (error) {
+      console.error('Failed to get AI usage stats:', error);
+      res.status(500).json({ message: 'Failed to get usage statistics' });
+    }
   });
 
   const httpServer = createServer(app);

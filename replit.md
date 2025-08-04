@@ -47,6 +47,18 @@ Preferred communication style: Simple, everyday language.
 - **Styling**: Tailwind CSS with custom design system variables and dark mode support
 
 ## Recent Changes (August 4, 2025)
+- **AI Model Configuration System**: Complete implementation of configurable AI provider system
+  - Database schema updated with aiModelConfigs and aiUsageLogs tables for tracking configurations and usage
+  - AiService created supporting OpenAI, Azure OpenAI, Anthropic, VertexAI, and Gemini providers
+  - Frontend AiModelConfig page for managing multiple AI provider connections with security features
+  - API routes for CRUD operations on AI configurations with proper authentication and validation
+  - Navigation updated to include "AI Models" link in sidebar with CPU icon
+  - Cost tracking and usage statistics with provider-specific cost estimation
+  - Secure API key storage with masked display for security
+  - Default configuration selection for seamless AI operations
+  - SummaryService updated to use configurable AI providers instead of fixed OpenAI integration
+  - Support for provider-specific parameters (base URL, organization ID, project ID, region)
+
 - **Telegram Bot Integration**: Complete implementation of Telegram bot functionality
   - Database schema updated with telegramConnections and telegramSubmissions tables
   - TelegramBotService created with command handlers (/start, /connect, /workspaces, /help)

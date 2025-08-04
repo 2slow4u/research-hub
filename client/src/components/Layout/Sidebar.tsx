@@ -12,7 +12,8 @@ import {
   Sun, 
   LogOut,
   User,
-  MessageCircle
+  MessageCircle,
+  Cpu
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -34,6 +35,7 @@ export default function Sidebar() {
     { name: 'Search & Monitor', href: '/search', icon: Search },
     { name: 'Summaries', href: '/summaries', icon: FileText },
     { name: 'Telegram Bot', href: '/telegram', icon: MessageCircle },
+    { name: 'AI Models', href: '/ai-config', icon: Cpu },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 

@@ -31,9 +31,15 @@ import {
   type InsertTelegramConnection,
   type TelegramSubmission,
   type InsertTelegramSubmission,
+  aiModelConfigs,
+  type AiModelConfig,
+  type InsertAiModelConfig,
+  aiUsageLog,
+  type AiUsageLog,
+  type InsertAiUsageLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, inArray, count, sql } from "drizzle-orm";
+import { eq, desc, and, inArray, count, sql, ne, gte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -97,6 +103,21 @@ export interface IStorage {
   updateTelegramConnection(id: string, updates: Partial<TelegramConnection>): Promise<TelegramConnection>;
   createTelegramSubmission(submission: InsertTelegramSubmission): Promise<TelegramSubmission>;
   getTelegramSubmissions(connectionId: string): Promise<TelegramSubmission[]>;
+
+  // AI Model Configuration operations
+  getAiModelConfigs(userId: string): Promise<AiModelConfig[]>;
+  getAiModelConfig(id: string): Promise<AiModelConfig | undefined>;
+  getDefaultAiModelConfig(userId: string): Promise<AiModelConfig | undefined>;
+  createAiModelConfig(data: InsertAiModelConfig): Promise<AiModelConfig>;
+  updateAiModelConfig(id: string, data: Partial<InsertAiModelConfig>): Promise<AiModelConfig>;
+  deleteAiModelConfig(id: string): Promise<void>;
+  logAiUsage(data: InsertAiUsageLog): Promise<AiUsageLog>;
+  getAiUsageStats(userId: string, timeframe?: 'day' | 'week' | 'month'): Promise<{
+    totalCost: number;
+    totalTokens: number;
+    totalCalls: number;
+    byProvider: Record<string, { cost: number; tokens: number; calls: number }>;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -501,6 +522,145 @@ export class DatabaseStorage implements IStorage {
       .from(telegramSubmissions)
       .where(eq(telegramSubmissions.telegramConnectionId, connectionId))
       .orderBy(desc(telegramSubmissions.createdAt));
+  }
+
+  // AI Model Configuration methods
+  async getAiModelConfigs(userId: string): Promise<AiModelConfig[]> {
+    const configs = await db.select()
+      .from(aiModelConfigs)
+      .where(eq(aiModelConfigs.userId, userId))
+      .orderBy(desc(aiModelConfigs.isDefault), desc(aiModelConfigs.createdAt));
+    return configs;
+  }
+
+  async getAiModelConfig(id: string): Promise<AiModelConfig | undefined> {
+    const [config] = await db.select()
+      .from(aiModelConfigs)
+      .where(eq(aiModelConfigs.id, id));
+    return config;
+  }
+
+  async getDefaultAiModelConfig(userId: string): Promise<AiModelConfig | undefined> {
+    const [config] = await db.select()
+      .from(aiModelConfigs)
+      .where(and(
+        eq(aiModelConfigs.userId, userId),
+        eq(aiModelConfigs.isDefault, true),
+        eq(aiModelConfigs.isActive, true)
+      ));
+    return config;
+  }
+
+  async createAiModelConfig(data: InsertAiModelConfig): Promise<AiModelConfig> {
+    // If this is being set as default, unset all other defaults for this user
+    if (data.isDefault) {
+      await db.update(aiModelConfigs)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(eq(aiModelConfigs.userId, data.userId));
+    }
+
+    const [config] = await db.insert(aiModelConfigs)
+      .values(data)
+      .returning();
+    return config;
+  }
+
+  async updateAiModelConfig(id: string, data: Partial<InsertAiModelConfig>): Promise<AiModelConfig> {
+    // If this is being set as default, unset all other defaults for this user
+    if (data.isDefault && data.userId) {
+      await db.update(aiModelConfigs)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(and(
+          eq(aiModelConfigs.userId, data.userId),
+          ne(aiModelConfigs.id, id)
+        ));
+    }
+
+    const [config] = await db.update(aiModelConfigs)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(aiModelConfigs.id, id))
+      .returning();
+    return config;
+  }
+
+  async deleteAiModelConfig(id: string): Promise<void> {
+    await db.delete(aiModelConfigs)
+      .where(eq(aiModelConfigs.id, id));
+  }
+
+  async logAiUsage(data: InsertAiUsageLog): Promise<AiUsageLog> {
+    // Update usage count and last used timestamp
+    await db.update(aiModelConfigs)
+      .set({ 
+        usageCount: sql`${aiModelConfigs.usageCount} + 1`,
+        lastUsed: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(aiModelConfigs.id, data.configId));
+
+    const [log] = await db.insert(aiUsageLog)
+      .values(data)
+      .returning();
+    return log;
+  }
+
+  async getAiUsageStats(userId: string, timeframe?: 'day' | 'week' | 'month'): Promise<{
+    totalCost: number;
+    totalTokens: number;
+    totalCalls: number;
+    byProvider: Record<string, { cost: number; tokens: number; calls: number }>;
+  }> {
+    let whereClause = eq(aiUsageLog.userId, userId);
+    
+    if (timeframe) {
+      const now = new Date();
+      let startDate: Date;
+      switch (timeframe) {
+        case 'day':
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+      }
+      whereClause = and(whereClause, gte(aiUsageLog.createdAt, startDate));
+    }
+
+    const results = await db.select({
+      provider: aiModelConfigs.provider,
+      cost: aiUsageLog.estimatedCost,
+      tokens: aiUsageLog.tokensUsed,
+    })
+    .from(aiUsageLog)
+    .innerJoin(aiModelConfigs, eq(aiUsageLog.configId, aiModelConfigs.id))
+    .where(whereClause);
+
+    const stats = {
+      totalCost: 0,
+      totalTokens: 0,
+      totalCalls: results.length,
+      byProvider: {} as Record<string, { cost: number; tokens: number; calls: number }>
+    };
+
+    results.forEach(row => {
+      const cost = parseFloat(row.cost || '0');
+      const tokens = row.tokens || 0;
+      
+      stats.totalCost += cost;
+      stats.totalTokens += tokens;
+      
+      if (!stats.byProvider[row.provider]) {
+        stats.byProvider[row.provider] = { cost: 0, tokens: 0, calls: 0 };
+      }
+      stats.byProvider[row.provider].cost += cost;
+      stats.byProvider[row.provider].tokens += tokens;
+      stats.byProvider[row.provider].calls += 1;
+    });
+
+    return stats;
   }
 }
 

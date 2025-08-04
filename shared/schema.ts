@@ -9,6 +9,7 @@ import {
   text,
   integer,
   boolean,
+  decimal,
   pgEnum,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -360,3 +361,78 @@ export type InsertTelegramConnection = z.infer<typeof insertTelegramConnectionSc
 export type TelegramConnection = typeof telegramConnections.$inferSelect;
 export type InsertTelegramSubmission = z.infer<typeof insertTelegramSubmissionSchema>;
 export type TelegramSubmission = typeof telegramSubmissions.$inferSelect;
+
+// AI Model Configurations
+export const aiModelConfigs = pgTable("ai_model_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name").notNull(), // User-friendly name like "My OpenAI", "Company Azure"
+  provider: varchar("provider").notNull(), // 'openai', 'azure_openai', 'anthropic', 'vertexai', 'gemini'
+  model: varchar("model").notNull(), // e.g., 'gpt-4o', 'claude-3-5-sonnet', 'gemini-pro'
+  apiKey: text("api_key").notNull(),
+  baseUrl: varchar("base_url"), // For custom endpoints
+  organizationId: varchar("organization_id"), // For OpenAI orgs
+  projectId: varchar("project_id"), // For VertexAI
+  region: varchar("region"), // For Azure/VertexAI
+  additionalConfig: jsonb("additional_config"), // For provider-specific settings
+  isActive: boolean("is_active").notNull().default(true),
+  isDefault: boolean("is_default").notNull().default(false),
+  usageCount: integer("usage_count").notNull().default(0),
+  lastUsed: timestamp("last_used"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// AI Usage Tracking
+export const aiUsageLog = pgTable("ai_usage_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  configId: varchar("config_id").notNull().references(() => aiModelConfigs.id, { onDelete: "cascade" }),
+  operation: varchar("operation").notNull(), // 'summarize', 'extract', 'analyze'
+  tokensUsed: integer("tokens_used"),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 6 }),
+  responseTime: integer("response_time"), // in milliseconds
+  success: boolean("success").notNull().default(true),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations for AI configs
+export const aiModelConfigsRelations = relations(aiModelConfigs, ({ one, many }) => ({
+  user: one(users, {
+    fields: [aiModelConfigs.userId],
+    references: [users.id],
+  }),
+  usageLogs: many(aiUsageLog),
+}));
+
+export const aiUsageLogRelations = relations(aiUsageLog, ({ one }) => ({
+  user: one(users, {
+    fields: [aiUsageLog.userId],
+    references: [users.id],
+  }),
+  config: one(aiModelConfigs, {
+    fields: [aiUsageLog.configId],
+    references: [aiModelConfigs.id],
+  }),
+}));
+
+// Schemas for AI configs
+export const insertAiModelConfigSchema = createInsertSchema(aiModelConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  usageCount: true,
+  lastUsed: true,
+});
+
+export const insertAiUsageLogSchema = createInsertSchema(aiUsageLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for AI configs
+export type AiModelConfig = typeof aiModelConfigs.$inferSelect;
+export type InsertAiModelConfig = z.infer<typeof insertAiModelConfigSchema>;
+export type AiUsageLog = typeof aiUsageLog.$inferSelect;
+export type InsertAiUsageLog = z.infer<typeof insertAiUsageLogSchema>;

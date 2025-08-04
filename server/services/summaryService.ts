@@ -1,5 +1,5 @@
 import { storage } from "../storage";
-import { openaiService } from "./openai";
+import { aiService } from "./aiService";
 import type { InsertSummary, Summary } from "@shared/schema";
 
 export interface GenerateSummaryRequest {
@@ -7,11 +7,13 @@ export interface GenerateSummaryRequest {
   type: 'full' | 'differential';
   focus?: string;
   latestSummary?: Summary | null;
+  userId: string;
+  configId?: string; // Optional: use specific AI config
 }
 
 export class SummaryService {
   async generateSummary(request: GenerateSummaryRequest): Promise<Summary> {
-    const { workspaceId, type, focus, latestSummary } = request;
+    const { workspaceId, type, focus, latestSummary, userId, configId } = request;
 
     try {
       const workspace = await storage.getWorkspace(workspaceId);
@@ -36,20 +38,42 @@ export class SummaryService {
       const contentTexts = contentItems.map(item => `${item.title}\n${item.content}`);
       const contentItemIds = contentItems.map(item => item.id);
 
-      // Generate summary using OpenAI
-      const aiSummary = await openaiService.generateSummary({
-        content: contentTexts,
-        keywords: workspace.keywords,
+      // Generate summary using configured AI service
+      const combinedContent = contentTexts.join('\n\n---\n\n');
+      
+      let summaryPrompt = `Please create a comprehensive summary of the following research content related to: ${workspace.keywords}`;
+      
+      if (type === 'differential' && latestSummary) {
+        summaryPrompt += `\n\nThis is a differential summary. Focus on new information since the last summary. Previous summary content:\n${latestSummary.content}\n\nNew content to summarize:`;
+      } else {
+        summaryPrompt += `\n\nContent to summarize:`;
+      }
+      
+      summaryPrompt += `\n\n${combinedContent}`;
+
+      const aiSummaryContent = await aiService.summarizeContent(
+        combinedContent,
+        userId,
         focus,
-        type,
-        previousSummary: latestSummary?.content,
+        configId
+      );
+
+      // Generate a title based on the summary
+      const titlePrompt = `Based on this summary, generate a concise title (max 80 characters):\n\n${aiSummaryContent}`;
+      const titleResponse = await aiService.generateResponse({
+        prompt: titlePrompt,
+        userId,
+        operation: 'extract',
+        configId,
       });
+
+      const title = titleResponse.content.replace(/['"]/g, '').substring(0, 80);
 
       // Create summary record
       const summaryData: InsertSummary = {
         workspaceId,
-        title: aiSummary.title,
-        content: aiSummary.content,
+        title: title || `${type === 'differential' ? 'Update' : 'Summary'} - ${new Date().toLocaleDateString()}`,
+        content: aiSummaryContent,
         type,
         focus,
         contentItems: contentItemIds,
