@@ -29,7 +29,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { ContentActionModal } from "@/components/Content/ContentActionModal";
-import { ShareSummaryModal } from "@/components/Sharing/ShareSummaryModal";
+
 
 export default function WorkspaceDetail() {
   const { id } = useParams();
@@ -451,15 +451,6 @@ export default function WorkspaceDetail() {
                             </CardDescription>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <ShareSummaryModal
-                              summaryId={summary.id}
-                              workspaceId={id!}
-                              trigger={
-                                <Button variant="ghost" size="sm">
-                                  <Share className="h-4 w-4" />
-                                </Button>
-                              }
-                            />
                             <Button variant="ghost" size="sm">
                               <Edit className="h-4 w-4" />
                             </Button>

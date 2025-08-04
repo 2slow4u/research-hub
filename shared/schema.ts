@@ -110,37 +110,7 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Cross-workspace sharing tables
-export const sharedContent = pgTable("shared_content", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  contentItemId: varchar("content_item_id").references(() => contentItems.id, { onDelete: 'cascade' }).notNull(),
-  fromWorkspaceId: varchar("from_workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
-  toWorkspaceId: varchar("to_workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
-  sharedById: varchar("shared_by_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
-export const sharedSummaries = pgTable("shared_summaries", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  summaryId: varchar("summary_id").references(() => summaries.id, { onDelete: 'cascade' }).notNull(),
-  fromWorkspaceId: varchar("from_workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
-  toWorkspaceId: varchar("to_workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
-  sharedById: varchar("shared_by_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  notes: text("notes"),
-  isCollaborative: boolean("is_collaborative").default(false), // Can other workspace edit this summary
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const collaborativeEdits = pgTable("collaborative_edits", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  summaryId: varchar("summary_id").references(() => summaries.id, { onDelete: 'cascade' }).notNull(),
-  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  changeDescription: text("change_description").notNull(),
-  oldContent: text("old_content"),
-  newContent: text("new_content"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
 // Telegram bot integration tables
 export const telegramConnections = pgTable("telegram_connections", {
@@ -212,54 +182,7 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
   }),
 }));
 
-export const sharedContentRelations = relations(sharedContent, ({ one }) => ({
-  contentItem: one(contentItems, {
-    fields: [sharedContent.contentItemId],
-    references: [contentItems.id],
-  }),
-  fromWorkspace: one(workspaces, {
-    fields: [sharedContent.fromWorkspaceId],
-    references: [workspaces.id],
-  }),
-  toWorkspace: one(workspaces, {
-    fields: [sharedContent.toWorkspaceId],
-    references: [workspaces.id],
-  }),
-  sharedBy: one(users, {
-    fields: [sharedContent.sharedById],
-    references: [users.id],
-  }),
-}));
 
-export const sharedSummariesRelations = relations(sharedSummaries, ({ one }) => ({
-  summary: one(summaries, {
-    fields: [sharedSummaries.summaryId],
-    references: [summaries.id],
-  }),
-  fromWorkspace: one(workspaces, {
-    fields: [sharedSummaries.fromWorkspaceId],
-    references: [workspaces.id],
-  }),
-  toWorkspace: one(workspaces, {
-    fields: [sharedSummaries.toWorkspaceId],
-    references: [workspaces.id],
-  }),
-  sharedBy: one(users, {
-    fields: [sharedSummaries.sharedById],
-    references: [users.id],
-  }),
-}));
-
-export const collaborativeEditsRelations = relations(collaborativeEdits, ({ one }) => ({
-  summary: one(summaries, {
-    fields: [collaborativeEdits.summaryId],
-    references: [summaries.id],
-  }),
-  user: one(users, {
-    fields: [collaborativeEdits.userId],
-    references: [users.id],
-  }),
-}));
 
 export const telegramConnectionsRelations = relations(telegramConnections, ({ one, many }) => ({
   user: one(users, {
@@ -316,20 +239,7 @@ export const insertSourceSchema = createInsertSchema(sources).omit({
   createdAt: true,
 });
 
-export const insertSharedContentSchema = createInsertSchema(sharedContent).omit({
-  id: true,
-  createdAt: true,
-});
 
-export const insertSharedSummarySchema = createInsertSchema(sharedSummaries).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertCollaborativeEditSchema = createInsertSchema(collaborativeEdits).omit({
-  id: true,
-  createdAt: true,
-});
 
 export const insertTelegramConnectionSchema = createInsertSchema(telegramConnections).omit({
   id: true,
@@ -353,12 +263,7 @@ export type ContentItem = typeof contentItems.$inferSelect;
 export type InsertSource = z.infer<typeof insertSourceSchema>;
 export type Source = typeof sources.$inferSelect;
 export type Activity = typeof activities.$inferSelect;
-export type InsertSharedContent = z.infer<typeof insertSharedContentSchema>;
-export type SharedContent = typeof sharedContent.$inferSelect;
-export type InsertSharedSummary = z.infer<typeof insertSharedSummarySchema>;
-export type SharedSummary = typeof sharedSummaries.$inferSelect;
-export type InsertCollaborativeEdit = z.infer<typeof insertCollaborativeEditSchema>;
-export type CollaborativeEdit = typeof collaborativeEdits.$inferSelect;
+
 export type InsertTelegramConnection = z.infer<typeof insertTelegramConnectionSchema>;
 export type TelegramConnection = typeof telegramConnections.$inferSelect;
 export type InsertTelegramSubmission = z.infer<typeof insertTelegramSubmissionSchema>;
