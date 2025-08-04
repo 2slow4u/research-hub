@@ -148,11 +148,12 @@ export default function ArticleReader() {
   const handleCreateAnnotation = (type: "highlight" | "comment") => {
     if (!showTooltip) return;
 
+    // Simplified position tracking that works with HTML content
     const position = {
       startOffset: showTooltip.range.startOffset,
       endOffset: showTooltip.range.endOffset,
-      startContainer: showTooltip.range.startContainer.nodeValue || '',
-      endContainer: showTooltip.range.endContainer.nodeValue || '',
+      startContainer: showTooltip.selectedText.substring(0, 50), // Use text preview instead of container
+      endContainer: showTooltip.selectedText.substring(-50), // Use text preview instead of container
     };
 
     if (type === "highlight") {
@@ -178,11 +179,12 @@ export default function ArticleReader() {
   const handleSaveAnnotation = () => {
     if (!showTooltip || !annotationForm) return;
 
+    // Simplified position tracking that works with HTML content
     const position = {
       startOffset: showTooltip.range.startOffset,
       endOffset: showTooltip.range.endOffset,
-      startContainer: showTooltip.range.startContainer.nodeValue || '',
-      endContainer: showTooltip.range.endContainer.nodeValue || '',
+      startContainer: showTooltip.selectedText.substring(0, 50), // Use text preview instead of container
+      endContainer: showTooltip.selectedText.substring(-50), // Use text preview instead of container
     };
 
     const annotation: InsertAnnotation = {
