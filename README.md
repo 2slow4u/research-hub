@@ -58,15 +58,20 @@ ResearchHub is a comprehensive AI-powered research management platform that help
 ### Prerequisites
 - Node.js 18+ environment
 - PostgreSQL database (Neon recommended)
-- AI provider API keys (configured in-app)
-- Telegram Bot Token (optional for mobile integration)
+- AI provider API keys (configured securely in-app)
+- Telegram Bot Token (optional for mobile integration - store in environment variables, never in code)
 
 ### Quick Start on Replit
-1. Click the "Run" button to start the development server
-2. The application will be available at the provided Replit domain
-3. Use Replit Auth to sign in and create your first workspace
-4. Configure AI providers in Settings → AI Models
-5. Optionally set up Telegram bot in Settings → Telegram Bot
+1. **Configure Secrets**: Go to Replit Secrets (lock icon) and add:
+   - `DATABASE_URL` - Your PostgreSQL connection string
+   - `SESSION_SECRET` - A secure random string
+   - `REPL_ID` - Your Replit app ID
+   - `TELEGRAM_BOT_TOKEN` - Your bot token (optional)
+2. Click the "Run" button to start the development server
+3. The application will be available at the provided Replit domain
+4. Use Replit Auth to sign in and create your first workspace
+5. Configure AI providers securely in Settings → AI Models
+6. Optionally set up Telegram bot in Settings → Telegram Bot
 
 ### Local Development
 ```bash
@@ -77,9 +82,10 @@ cd research-hub
 # Install dependencies
 npm install
 
-# Set up environment variables
+# Set up environment variables (NEVER commit .env to git)
 cp .env.example .env
-# Configure DATABASE_URL, SESSION_SECRET, REPL_ID, TELEGRAM_BOT_TOKEN
+# Edit .env with your actual credentials:
+# - DATABASE_URL, SESSION_SECRET, REPL_ID, TELEGRAM_BOT_TOKEN
 
 # Push database schema
 npm run db:push
@@ -87,6 +93,8 @@ npm run db:push
 # Start development server
 npm run dev
 ```
+
+**🔒 Security Note**: Never commit your `.env` file or any secrets to version control. See `SECURITY.md` for complete security guidelines.
 
 ## 🏗️ Project Architecture
 

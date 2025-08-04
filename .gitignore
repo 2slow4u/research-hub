@@ -68,3 +68,10 @@ Thumbs.db
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Additional security files
+secrets.json
+config/secrets.json
+.secrets
+*.pem
+*.key
