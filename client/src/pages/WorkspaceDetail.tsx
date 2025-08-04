@@ -2,6 +2,8 @@ import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import SummaryModal from "@/components/Summary/SummaryModal";
+import AddContentModal from "@/components/Content/AddContentModal";
+import SourcesTab from "@/components/Sources/SourcesTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,7 @@ import { SharedContentList } from "@/components/Sharing/SharedContentList";
 export default function WorkspaceDetail() {
   const { id } = useParams();
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+  const [addContentModalOpen, setAddContentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("content");
 
@@ -144,9 +147,10 @@ export default function WorkspaceDetail() {
       {/* Main Content */}
       <main className="flex-1 overflow-auto p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="content">Content ({content?.length || 0})</TabsTrigger>
               <TabsTrigger value="summaries">Summaries ({summaries?.length || 0})</TabsTrigger>
+              <TabsTrigger value="sources">Sources</TabsTrigger>
               <TabsTrigger value="shared">Shared</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -171,10 +175,17 @@ export default function WorkspaceDetail() {
                   </Button>
                 </div>
                 
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button onClick={() => setAddContentModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Content
+                  </Button>
+                  
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
+                </div>
               </div>
 
               {/* Content List */}
@@ -199,12 +210,18 @@ export default function WorkspaceDetail() {
                   <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
                     {searchQuery ? 'No content found' : 'No content yet'}
                   </h3>
-                  <p className="text-neutral-500 dark:text-neutral-400">
+                  <p className="text-neutral-500 dark:text-neutral-400 mb-4">
                     {searchQuery 
                       ? `No content matches "${searchQuery}"`
-                      : 'Content will appear here as we monitor your keywords'
+                      : 'Add content directly, set up RSS feeds, or configure website monitoring to get started'
                     }
                   </p>
+                  {!searchQuery && (
+                    <Button onClick={() => setAddContentModalOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Content
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -348,6 +365,13 @@ export default function WorkspaceDetail() {
               )}
             </TabsContent>
             
+            <TabsContent value="sources" className="space-y-6">
+              <SourcesTab 
+                workspaceId={id!} 
+                onAddSource={() => setAddContentModalOpen(true)}
+              />
+            </TabsContent>
+            
             <TabsContent value="shared" className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
@@ -419,6 +443,12 @@ export default function WorkspaceDetail() {
           workspaceId={id!}
           workspace={workspace}
           latestSummary={summaries?.[0]}
+        />
+        
+        <AddContentModal
+          open={addContentModalOpen}
+          onOpenChange={setAddContentModalOpen}
+          workspaceId={id!}
         />
       </div>
   );

@@ -56,6 +56,7 @@ export interface IStorage {
   // Content operations
   getWorkspaceContent(workspaceId: string, limit?: number): Promise<ContentItem[]>;
   addContentItem(item: InsertContentItem): Promise<ContentItem>;
+  createContentItem(item: InsertContentItem): Promise<ContentItem>;
   bulkAddContentItems(items: InsertContentItem[]): Promise<ContentItem[]>;
   getContentSinceDate(workspaceId: string, date: Date): Promise<ContentItem[]>;
   
@@ -69,6 +70,7 @@ export interface IStorage {
   // Source operations
   getAllSources(): Promise<Source[]>;
   getActiveWhitelistedSources(): Promise<Source[]>;
+  getWorkspaceSources(workspaceId: string): Promise<Source[]>;
   createSource(source: InsertSource): Promise<Source>;
   updateSource(id: string, updates: Partial<Source>): Promise<Source>;
   
@@ -189,6 +191,11 @@ export class DatabaseStorage implements IStorage {
     return contentItem;
   }
 
+  async createContentItem(item: InsertContentItem): Promise<ContentItem> {
+    const [contentItem] = await db.insert(contentItems).values(item).returning();
+    return contentItem;
+  }
+
   async bulkAddContentItems(items: InsertContentItem[]): Promise<ContentItem[]> {
     if (items.length === 0) return [];
     return await db.insert(contentItems).values(items).returning();
@@ -272,6 +279,11 @@ export class DatabaseStorage implements IStorage {
           eq(sources.isWhitelisted, true)
         )
       );
+  }
+
+  async getWorkspaceSources(workspaceId: string): Promise<Source[]> {
+    // For now, return all sources. In future, we could link sources to workspaces
+    return await db.select().from(sources).where(eq(sources.isActive, true));
   }
 
   async createSource(source: InsertSource): Promise<Source> {

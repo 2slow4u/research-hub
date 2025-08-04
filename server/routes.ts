@@ -7,6 +7,7 @@ import { insertWorkspaceSchema, insertSummarySchema } from "@shared/schema";
 import { ContentService } from "./services/contentService";
 import { SummaryService } from "./services/summaryService";
 import { telegramBot } from "./services/telegramBot";
+import { contentExtractor } from "./services/contentExtractor";
 
 const contentService = new ContentService();
 const summaryService = new SummaryService();
@@ -176,6 +177,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching content:", error);
       res.status(500).json({ message: "Failed to fetch content" });
+    }
+  });
+
+  // Content ingestion routes
+  app.post('/api/workspaces/:id/content', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const { type, url, title, content } = req.body;
+      
+      const workspace = await storage.getWorkspace(id);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+
+      let extractedContent;
+      
+      if (type === 'url') {
+        if (!url) {
+          return res.status(400).json({ message: "URL is required" });
+        }
+        
+        // Extract content from URL
+        extractedContent = await contentExtractor.extractFromUrl(url);
+        
+        // Use custom title and content if provided
+        const finalTitle = title || extractedContent.title;
+        const finalContent = content || extractedContent.content;
+        
+        // Create content item
+        const contentItem = await storage.createContentItem({
+          workspaceId: id,
+          title: finalTitle,
+          content: finalContent,
+          url: url,
+          publishedAt: extractedContent.publishedAt || new Date(),
+          relevanceScore: 85, // Default relevance for manually added content
+        });
+
+        // Create activity
+        await storage.createActivity({
+          userId,
+          workspaceId: id,
+          type: 'content_added',
+          description: `Added content: ${finalTitle}`,
+          metadata: { contentItemId: contentItem.id, source: 'manual_url' },
+        });
+
+        res.status(201).json(contentItem);
+      } else {
+        res.status(400).json({ message: "Invalid content type" });
+      }
+    } catch (error) {
+      console.error("Error adding content:", error);
+      res.status(500).json({ message: "Failed to add content" });
+    }
+  });
+
+  // Source management routes
+  app.post('/api/workspaces/:id/sources', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const { type, url, name, selectors } = req.body;
+      
+      const workspace = await storage.getWorkspace(id);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+
+      if (!url || !name) {
+        return res.status(400).json({ message: "URL and name are required" });
+      }
+
+      // Validate RSS feed if it's RSS type
+      if (type === 'rss') {
+        const isValid = await contentExtractor.validateRssFeed(url);
+        if (!isValid) {
+          return res.status(400).json({ message: "Invalid RSS feed URL" });
+        }
+      }
+
+      // Create source
+      const source = await storage.createSource({
+        name,
+        url,
+        type,
+        isWhitelisted: true,
+        isActive: true,
+        reputation: 100,
+      });
+
+      // Create activity
+      await storage.createActivity({
+        userId,
+        workspaceId: id,
+        type: 'source_added',
+        description: `Added ${type} source: ${name}`,
+        metadata: { sourceId: source.id, type, url },
+      });
+
+      res.status(201).json(source);
+    } catch (error) {
+      console.error("Error adding source:", error);
+      res.status(500).json({ message: "Failed to add source" });
+    }
+  });
+
+  app.get('/api/workspaces/:id/sources', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      const workspace = await storage.getWorkspace(id);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const sources = await storage.getWorkspaceSources(id);
+      res.json(sources);
+    } catch (error) {
+      console.error("Error fetching sources:", error);
+      res.status(500).json({ message: "Failed to fetch sources" });
     }
   });
 
