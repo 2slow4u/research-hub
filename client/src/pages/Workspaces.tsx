@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import CreateWorkspaceModal from "@/components/Workspace/CreateWorkspaceModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +41,7 @@ interface Workspace {
 export default function Workspaces() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const { data: workspaces, isLoading } = useQuery<Workspace[]>({
     queryKey: ['/api/workspaces'],
@@ -147,12 +149,10 @@ export default function Workspaces() {
               Manage your research workspaces and organize your content
             </p>
           </div>
-          <Link href="/workspace/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New Workspace
-            </Button>
-          </Link>
+          <Button onClick={() => setCreateModalOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Workspace
+          </Button>
         </div>
 
         {/* Search */}
@@ -184,12 +184,10 @@ export default function Workspaces() {
                   }
                 </p>
                 {!searchQuery && (
-                  <Link href="/workspace/new">
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Workspace
-                    </Button>
-                  </Link>
+                  <Button onClick={() => setCreateModalOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Workspace
+                  </Button>
                 )}
               </div>
             </CardContent>
@@ -284,6 +282,11 @@ export default function Workspaces() {
           </div>
         )}
       </div>
+
+      <CreateWorkspaceModal 
+        open={createModalOpen} 
+        onOpenChange={setCreateModalOpen} 
+      />
     </div>
   );
 }
