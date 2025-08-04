@@ -50,7 +50,8 @@ export default function ArticleReader() {
 
   const createAnnotationMutation = useMutation({
     mutationFn: async (annotation: InsertAnnotation) => {
-      return await apiRequest('POST', `/api/content/${id}/annotations`, annotation);
+      console.log('Creating annotation with data:', annotation);
+      return await apiRequest(`/api/content/${id}/annotations`, 'POST', annotation);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/content', id, 'annotations'] });
@@ -61,10 +62,11 @@ export default function ArticleReader() {
         description: "Your annotation has been added to the article.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error('Annotation creation failed:', error);
       toast({
-        title: "Error saving annotation",
-        description: "Could not save your annotation. Please try again.",
+        title: "Could not save annotation", 
+        description: error.message || "Please try again.",
         variant: "destructive",
       });
     },
@@ -72,7 +74,7 @@ export default function ArticleReader() {
 
   const deleteAnnotationMutation = useMutation({
     mutationFn: async (annotationId: string) => {
-      return await apiRequest('DELETE', `/api/annotations/${annotationId}`);
+      return await apiRequest(`/api/annotations/${annotationId}`, 'DELETE');
     },
     onSuccess: (_, annotationId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/content', id, 'annotations'] });
