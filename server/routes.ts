@@ -189,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Archive/Unarchive workspace routes
+  // Archive/Restore workspace routes
   app.post('/api/workspaces/:id/archive', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/workspaces/:id/unarchive', isAuthenticated, async (req: any, res) => {
+  app.post('/api/workspaces/:id/restore', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { id } = req.params;
@@ -238,23 +238,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Workspace is not archived" });
       }
       
-      const unarchivedWorkspace = await storage.unarchiveWorkspace(id);
+      const restoredWorkspace = await storage.restoreWorkspace(id);
       
-      // Resume monitoring for unarchived workspace
-      contentService.startMonitoring(id, unarchivedWorkspace.keywords);
+      // Resume monitoring for restored workspace
+      contentService.startMonitoring(id, restoredWorkspace.keywords);
       
       // Create activity
       await storage.createActivity({
         userId,
         workspaceId: id,
-        type: 'workspace_unarchived',
-        description: `Unarchived workspace: ${workspace.name}`,
+        type: 'workspace_restored',
+        description: `Restored workspace: ${workspace.name}`,
       });
       
-      res.json(unarchivedWorkspace);
+      res.json(restoredWorkspace);
     } catch (error) {
-      console.error("Error unarchiving workspace:", error);
-      res.status(500).json({ message: "Failed to unarchive workspace" });
+      console.error("Error restoring workspace:", error);
+      res.status(500).json({ message: "Failed to restore workspace" });
     }
   });
 

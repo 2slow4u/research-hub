@@ -45,22 +45,22 @@ export default function Archive() {
     queryKey: ['/api/workspaces/archived'],
   });
 
-  const unarchiveMutation = useMutation({
+  const restoreMutation = useMutation({
     mutationFn: async (workspaceId: string) => {
-      return await apiRequest(`/api/workspaces/${workspaceId}/unarchive`, 'POST');
+      return await apiRequest(`/api/workspaces/${workspaceId}/restore`, 'POST');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces/archived'] });
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces'] });
       toast({
-        title: "Workspace unarchived",
+        title: "Workspace restored",
         description: "The workspace has been restored and monitoring resumed.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error unarchiving workspace",
-        description: error.message || "Could not unarchive the workspace.",
+        title: "Error restoring workspace",
+        description: error.message || "Could not restore the workspace.",
         variant: "destructive",
       });
     },
@@ -86,9 +86,9 @@ export default function Archive() {
     },
   });
 
-  const handleUnarchive = (workspace: ArchivedWorkspace) => {
-    if (window.confirm(`Are you sure you want to unarchive "${workspace.name}"? This will resume content monitoring.`)) {
-      unarchiveMutation.mutate(workspace.id);
+  const handleRestore = (workspace: ArchivedWorkspace) => {
+    if (window.confirm(`Are you sure you want to restore "${workspace.name}"? This will resume content monitoring.`)) {
+      restoreMutation.mutate(workspace.id);
     }
   };
 
@@ -212,9 +212,9 @@ export default function Archive() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleUnarchive(workspace)}>
+                        <DropdownMenuItem onClick={() => handleRestore(workspace)}>
                           <RotateCcw className="w-4 h-4 mr-2" />
-                          Unarchive
+                          Restore
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleDeleteWorkspace(workspace)}
@@ -268,7 +268,7 @@ export default function Archive() {
                       variant="outline" 
                       size="sm" 
                       className="flex-1"
-                      onClick={() => handleUnarchive(workspace)}
+                      onClick={() => handleRestore(workspace)}
                     >
                       <RotateCcw className="w-3 h-3 mr-1" />
                       Restore

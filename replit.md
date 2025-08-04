@@ -50,13 +50,14 @@ Preferred communication style: Simple, everyday language.
 
 - **Workspace Archive System**: Complete implementation of workspace archiving functionality
   - Added workspace status enum with 'active', 'paused', and 'archived' states in database schema
-  - Implemented archive/unarchive API endpoints with proper monitoring control
+  - Implemented archive/restore API endpoints with proper monitoring control (terminology updated from "unarchive" to "restore")
   - Created dedicated Archive page for managing archived workspaces with search and restore capabilities
   - Added Archive menu item to main navigation for easy access to archived workspaces
-  - Archive functionality stops web monitoring for workspaces, unarchive resumes monitoring
+  - Archive functionality stops web monitoring for workspaces, restore resumes monitoring
   - Enhanced workspace overview with archive action in dropdown menus
   - Archived workspaces are filtered out of active workspace lists but remain accessible for viewing
-  - Added archivedAt timestamp tracking and proper activity logging for archive/unarchive actions
+  - Added archivedAt timestamp tracking and proper activity logging for archive/restore actions
+  - Updated all user-facing terminology from "unarchive" to "restore" for better clarity
 
 - **Enhanced Navigation System**: Improved workspace navigation with expandable menu structure
   - Added expandable workspace navigation in sidebar with alphabetical sorting

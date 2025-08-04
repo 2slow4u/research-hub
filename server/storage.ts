@@ -57,7 +57,7 @@ export interface IStorage {
   updateWorkspace(id: string, updates: Partial<Workspace>): Promise<Workspace>;
   deleteWorkspace(id: string): Promise<void>;
   archiveWorkspace(id: string): Promise<Workspace>;
-  unarchiveWorkspace(id: string): Promise<Workspace>;
+  restoreWorkspace(id: string): Promise<Workspace>;
   
   // Content operations
   getWorkspaceContent(workspaceId: string, limit?: number): Promise<ContentItem[]>;
@@ -221,7 +221,7 @@ export class DatabaseStorage implements IStorage {
     return workspace;
   }
 
-  async unarchiveWorkspace(id: string): Promise<Workspace> {
+  async restoreWorkspace(id: string): Promise<Workspace> {
     const [workspace] = await db
       .update(workspaces)
       .set({ 
