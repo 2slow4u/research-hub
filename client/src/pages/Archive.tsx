@@ -2,13 +2,12 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "wouter";
 import { 
-  Plus, 
   Search, 
   MoreVertical, 
   Calendar, 
   FileText, 
   BarChart3,
-  Edit,
+  RotateCcw,
   Trash2,
   Archive as ArchiveIcon
 } from "lucide-react";
@@ -25,11 +24,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface Workspace {
+interface ArchivedWorkspace {
   id: string;
   name: string;
   keywords: string[];
   purpose: string | null;
+  archivedAt: string;
   createdAt: string;
   _count?: {
     contentItems: number;
@@ -37,12 +37,33 @@ interface Workspace {
   };
 }
 
-export default function Workspaces() {
+export default function Archive() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: workspaces, isLoading } = useQuery<Workspace[]>({
-    queryKey: ['/api/workspaces'],
+  const { data: archivedWorkspaces, isLoading } = useQuery<ArchivedWorkspace[]>({
+    queryKey: ['/api/workspaces/archived'],
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (workspaceId: string) => {
+      return await apiRequest(`/api/workspaces/${workspaceId}/unarchive`, 'POST');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces/archived'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces'] });
+      toast({
+        title: "Workspace unarchived",
+        description: "The workspace has been restored and monitoring resumed.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error unarchiving workspace",
+        description: error.message || "Could not unarchive the workspace.",
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteWorkspaceMutation = useMutation({
@@ -50,10 +71,10 @@ export default function Workspaces() {
       return await apiRequest(`/api/workspaces/${workspaceId}`, 'DELETE');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/workspaces'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces/archived'] });
       toast({
         title: "Workspace deleted",
-        description: "The workspace has been removed successfully.",
+        description: "The workspace has been permanently removed.",
       });
     },
     onError: (error: Error) => {
@@ -65,39 +86,19 @@ export default function Workspaces() {
     },
   });
 
-  const archiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) => {
-      return await apiRequest(`/api/workspaces/${workspaceId}/archive`, 'POST');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/workspaces'] });
-      toast({
-        title: "Workspace archived",
-        description: "The workspace has been archived and monitoring stopped.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error archiving workspace",
-        description: error.message || "Could not archive the workspace.",
-        variant: "destructive",
-      });
-    },
-  });
+  const handleUnarchive = (workspace: ArchivedWorkspace) => {
+    if (window.confirm(`Are you sure you want to unarchive "${workspace.name}"? This will resume content monitoring.`)) {
+      unarchiveMutation.mutate(workspace.id);
+    }
+  };
 
-  const handleDeleteWorkspace = (workspace: Workspace) => {
-    if (window.confirm(`Are you sure you want to delete "${workspace.name}"? This will also delete all content and summaries in this workspace.`)) {
+  const handleDeleteWorkspace = (workspace: ArchivedWorkspace) => {
+    if (window.confirm(`Are you sure you want to permanently delete "${workspace.name}"? This will delete all content and summaries and cannot be undone.`)) {
       deleteWorkspaceMutation.mutate(workspace.id);
     }
   };
 
-  const handleArchiveWorkspace = (workspace: Workspace) => {
-    if (window.confirm(`Are you sure you want to archive "${workspace.name}"? This will stop monitoring web sources for new content.`)) {
-      archiveMutation.mutate(workspace.id);
-    }
-  };
-
-  const filteredWorkspaces = workspaces?.filter(workspace =>
+  const filteredWorkspaces = archivedWorkspaces?.filter(workspace =>
     workspace.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     workspace.keywords.some(keyword => 
       keyword.toLowerCase().includes(searchQuery.toLowerCase())
@@ -106,7 +107,7 @@ export default function Workspaces() {
   ) || [];
 
   const sortedWorkspaces = filteredWorkspaces.sort((a, b) => 
-    a.name.localeCompare(b.name)
+    new Date(b.archivedAt).getTime() - new Date(a.archivedAt).getTime()
   );
 
   if (isLoading) {
@@ -140,19 +141,14 @@ export default function Workspaces() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
-              Workspaces
+            <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 flex items-center">
+              <ArchiveIcon className="w-8 h-8 mr-3" />
+              Archive
             </h1>
             <p className="text-neutral-500 dark:text-neutral-400 mt-2">
-              Manage your research workspaces and organize your content
+              Archived workspaces with monitoring stopped. You can restore or permanently delete them.
             </p>
           </div>
-          <Link href="/workspace/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New Workspace
-            </Button>
-          </Link>
         </div>
 
         {/* Search */}
@@ -160,7 +156,7 @@ export default function Workspaces() {
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
             <Input
-              placeholder="Search workspaces..."
+              placeholder="Search archived workspaces..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -168,26 +164,25 @@ export default function Workspaces() {
           </div>
         </div>
 
-        {/* Workspaces Grid */}
+        {/* Archived Workspaces Grid */}
         {sortedWorkspaces.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               <div className="max-w-md mx-auto">
-                <FileText className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+                <ArchiveIcon className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                  {searchQuery ? 'No matching workspaces' : 'No workspaces yet'}
+                  {searchQuery ? 'No matching archived workspaces' : 'No archived workspaces'}
                 </h3>
                 <p className="text-neutral-500 dark:text-neutral-400 mb-6">
                   {searchQuery 
                     ? 'Try adjusting your search terms'
-                    : 'Create your first workspace to start organizing research content'
+                    : 'When you archive workspaces, they will appear here. Archived workspaces stop monitoring web sources.'
                   }
                 </p>
                 {!searchQuery && (
-                  <Link href="/workspace/new">
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Workspace
+                  <Link href="/workspaces">
+                    <Button variant="outline">
+                      View Active Workspaces
                     </Button>
                   </Link>
                 )}
@@ -197,16 +192,17 @@ export default function Workspaces() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedWorkspaces.map((workspace) => (
-              <Card key={workspace.id} className="hover:shadow-md transition-shadow">
+              <Card key={workspace.id} className="hover:shadow-md transition-shadow opacity-75">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg truncate">
+                      <CardTitle className="text-lg truncate flex items-center">
+                        <ArchiveIcon className="w-4 h-4 mr-2 text-neutral-400" />
                         {workspace.name}
                       </CardTitle>
                       <div className="flex items-center space-x-2 text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                         <Calendar className="w-3 h-3" />
-                        <span>{new Date(workspace.createdAt).toLocaleDateString()}</span>
+                        <span>Archived {new Date(workspace.archivedAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <DropdownMenu>
@@ -216,22 +212,16 @@ export default function Workspaces() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/workspace/${workspace.id}/edit`}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleArchiveWorkspace(workspace)}>
-                          <ArchiveIcon className="w-4 h-4 mr-2" />
-                          Archive
+                        <DropdownMenuItem onClick={() => handleUnarchive(workspace)}>
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Unarchive
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleDeleteWorkspace(workspace)}
                           className="text-red-600"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
+                          Delete Forever
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -248,12 +238,12 @@ export default function Workspaces() {
                   <div className="mb-3">
                     <div className="flex flex-wrap gap-1">
                       {workspace.keywords.slice(0, 3).map((keyword, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
+                        <Badge key={index} variant="secondary" className="text-xs opacity-60">
                           {keyword}
                         </Badge>
                       ))}
                       {workspace.keywords.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs opacity-60">
                           +{workspace.keywords.length - 3} more
                         </Badge>
                       )}
@@ -273,11 +263,22 @@ export default function Workspaces() {
                   </div>
 
                   {/* Actions */}
-                  <Link href={`/workspace/${workspace.id}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      Open Workspace
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleUnarchive(workspace)}
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Restore
                     </Button>
-                  </Link>
+                    <Link href={`/workspace/${workspace.id}`} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full">
+                        View
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             ))}

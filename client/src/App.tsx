@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Workspaces from "@/pages/Workspaces";
+import Archive from "@/pages/Archive";
 import WorkspaceDetail from "@/pages/WorkspaceDetail";
 import SummaryEditor from "@/pages/SummaryEditor";
 import AdminPanel from "@/pages/AdminPanel";
@@ -31,6 +32,7 @@ function Router() {
         <Layout>
           <Route path="/" component={Dashboard} />
           <Route path="/workspaces" component={Workspaces} />
+          <Route path="/archive" component={Archive} />
           <Route path="/workspace/:id" component={WorkspaceDetail} />
           <Route path="/summary/:id" component={SummaryEditor} />
           <Route path="/search" component={Search} />

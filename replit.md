@@ -48,6 +48,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 4, 2025)
 
+- **Workspace Archive System**: Complete implementation of workspace archiving functionality
+  - Added workspace status enum with 'active', 'paused', and 'archived' states in database schema
+  - Implemented archive/unarchive API endpoints with proper monitoring control
+  - Created dedicated Archive page for managing archived workspaces with search and restore capabilities
+  - Added Archive menu item to main navigation for easy access to archived workspaces
+  - Archive functionality stops web monitoring for workspaces, unarchive resumes monitoring
+  - Enhanced workspace overview with archive action in dropdown menus
+  - Archived workspaces are filtered out of active workspace lists but remain accessible for viewing
+  - Added archivedAt timestamp tracking and proper activity logging for archive/unarchive actions
+
+- **Enhanced Navigation System**: Improved workspace navigation with expandable menu structure
+  - Added expandable workspace navigation in sidebar with alphabetical sorting
+  - Main "Workspaces" item now splits: left side goes to overview page, right side expands workspace list
+  - Created comprehensive Workspaces overview page with search, management, and statistics
+  - Individual workspace links appear under collapsible section for quick access
+  - Visual indicators for active workspace and proper route handling
+
 - **Critical Bug Fixes**: Resolved content deletion and Telegram URL preservation issues
   - Fixed content deletion by adding proper cascade deletion for annotations before content removal
   - Enhanced Telegram bot to properly save original URLs from messages for refresh functionality

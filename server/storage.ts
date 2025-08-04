@@ -51,10 +51,13 @@ export interface IStorage {
   
   // Workspace operations
   getUserWorkspaces(userId: string): Promise<Workspace[]>;
+  getArchivedWorkspaces(userId: string): Promise<Workspace[]>;
   getWorkspace(id: string): Promise<Workspace | undefined>;
   createWorkspace(workspace: InsertWorkspace & { userId: string }): Promise<Workspace>;
   updateWorkspace(id: string, updates: Partial<Workspace>): Promise<Workspace>;
   deleteWorkspace(id: string): Promise<void>;
+  archiveWorkspace(id: string): Promise<Workspace>;
+  unarchiveWorkspace(id: string): Promise<Workspace>;
   
   // Content operations
   getWorkspaceContent(workspaceId: string, limit?: number): Promise<ContentItem[]>;
@@ -164,8 +167,22 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(workspaces)
-      .where(eq(workspaces.userId, userId))
+      .where(and(
+        eq(workspaces.userId, userId),
+        ne(workspaces.status, 'archived')
+      ))
       .orderBy(desc(workspaces.updatedAt));
+  }
+
+  async getArchivedWorkspaces(userId: string): Promise<Workspace[]> {
+    return await db
+      .select()
+      .from(workspaces)
+      .where(and(
+        eq(workspaces.userId, userId),
+        eq(workspaces.status, 'archived')
+      ))
+      .orderBy(desc(workspaces.archivedAt));
   }
 
   async getWorkspace(id: string): Promise<Workspace | undefined> {
@@ -189,6 +206,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWorkspace(id: string): Promise<void> {
     await db.delete(workspaces).where(eq(workspaces.id, id));
+  }
+
+  async archiveWorkspace(id: string): Promise<Workspace> {
+    const [workspace] = await db
+      .update(workspaces)
+      .set({ 
+        status: 'archived',
+        archivedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(workspaces.id, id))
+      .returning();
+    return workspace;
+  }
+
+  async unarchiveWorkspace(id: string): Promise<Workspace> {
+    const [workspace] = await db
+      .update(workspaces)
+      .set({ 
+        status: 'active',
+        archivedAt: null,
+        updatedAt: new Date()
+      })
+      .where(eq(workspaces.id, id))
+      .returning();
+    return workspace;
   }
 
   // Content operations

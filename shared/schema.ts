@@ -54,6 +54,7 @@ export const workspaces = pgTable("workspaces", {
   status: workspaceStatusEnum("status").default('active'),
   monitoringFrequency: monitoringFrequencyEnum("monitoring_frequency").default('daily'),
   lastMonitored: timestamp("last_monitored"),
+  archivedAt: timestamp("archived_at"), // Track when workspace was archived
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

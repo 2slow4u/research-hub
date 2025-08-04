@@ -15,7 +15,8 @@ import {
   LogOut,
   Briefcase,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Archive
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -41,6 +42,7 @@ export default function Sidebar() {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Workspaces', href: '/workspaces', icon: Briefcase },
+    { name: 'Archive', href: '/archive', icon: Archive },
     { name: 'Search & Monitor', href: '/search', icon: Search },
     { name: 'Summaries', href: '/summaries', icon: FileText },
     { name: 'Settings', href: '/settings', icon: Settings },

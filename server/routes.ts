@@ -53,8 +53,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const summaries = await storage.getWorkspaceSummaries(workspace.id);
           return {
             ...workspace,
-            contentCount: content.length,
-            summaryCount: summaries.length,
+            _count: {
+              contentItems: content.length,
+              summaries: summaries.length,
+            },
           };
         })
       );
@@ -63,6 +65,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching workspaces:", error);
       res.status(500).json({ message: "Failed to fetch workspaces" });
+    }
+  });
+
+  app.get('/api/workspaces/archived', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const workspaces = await storage.getArchivedWorkspaces(userId);
+      
+      // Get content counts for each workspace
+      const workspacesWithStats = await Promise.all(
+        workspaces.map(async (workspace) => {
+          const content = await storage.getWorkspaceContent(workspace.id, 1);
+          const summaries = await storage.getWorkspaceSummaries(workspace.id);
+          return {
+            ...workspace,
+            _count: {
+              contentItems: content.length,
+              summaries: summaries.length,
+            },
+          };
+        })
+      );
+      
+      res.json(workspacesWithStats);
+    } catch (error) {
+      console.error("Error fetching archived workspaces:", error);
+      res.status(500).json({ message: "Failed to fetch archived workspaces" });
     }
   });
 
@@ -157,6 +186,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting workspace:", error);
       res.status(500).json({ message: "Failed to delete workspace" });
+    }
+  });
+
+  // Archive/Unarchive workspace routes
+  app.post('/api/workspaces/:id/archive', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      const workspace = await storage.getWorkspace(id);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      if (workspace.status === 'archived') {
+        return res.status(400).json({ message: "Workspace is already archived" });
+      }
+      
+      const archivedWorkspace = await storage.archiveWorkspace(id);
+      
+      // Stop monitoring for archived workspace
+      contentService.stopMonitoring(id);
+      
+      // Create activity
+      await storage.createActivity({
+        userId,
+        workspaceId: id,
+        type: 'workspace_archived',
+        description: `Archived workspace: ${workspace.name}`,
+      });
+      
+      res.json(archivedWorkspace);
+    } catch (error) {
+      console.error("Error archiving workspace:", error);
+      res.status(500).json({ message: "Failed to archive workspace" });
+    }
+  });
+
+  app.post('/api/workspaces/:id/unarchive', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      const workspace = await storage.getWorkspace(id);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      if (workspace.status !== 'archived') {
+        return res.status(400).json({ message: "Workspace is not archived" });
+      }
+      
+      const unarchivedWorkspace = await storage.unarchiveWorkspace(id);
+      
+      // Resume monitoring for unarchived workspace
+      contentService.startMonitoring(id, unarchivedWorkspace.keywords);
+      
+      // Create activity
+      await storage.createActivity({
+        userId,
+        workspaceId: id,
+        type: 'workspace_unarchived',
+        description: `Unarchived workspace: ${workspace.name}`,
+      });
+      
+      res.json(unarchivedWorkspace);
+    } catch (error) {
+      console.error("Error unarchiving workspace:", error);
+      res.status(500).json({ message: "Failed to unarchive workspace" });
     }
   });
 
