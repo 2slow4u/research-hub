@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
-import { insertWorkspaceSchema, insertSummarySchema } from "@shared/schema";
+import { insertWorkspaceSchema, insertSummarySchema, insertAnnotationSchema } from "@shared/schema";
 import { ContentService } from "./services/contentService";
 import { SummaryService } from "./services/summaryService";
 import { telegramBot } from "./services/telegramBot";
@@ -763,6 +763,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Failed to get AI usage stats:', error);
       res.status(500).json({ message: 'Failed to get usage statistics' });
+    }
+  });
+
+  // Content item routes
+  app.get('/api/content/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      const contentItem = await storage.getContentItem(id);
+      if (!contentItem) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+
+      // Verify access through workspace ownership
+      const workspace = await storage.getWorkspace(contentItem.workspaceId);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(contentItem);
+    } catch (error) {
+      console.error("Error fetching content:", error);
+      res.status(500).json({ message: "Failed to fetch content" });
+    }
+  });
+
+  app.delete('/api/content/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      await storage.deleteContentItem(id, userId);
+      res.json({ message: "Content deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting content:", error);
+      if (error.message === 'Unauthorized') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      res.status(500).json({ message: "Failed to delete content" });
+    }
+  });
+
+  // Annotation routes
+  app.get('/api/content/:id/annotations', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Verify access to content item
+      const contentItem = await storage.getContentItem(id);
+      if (!contentItem) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+
+      const workspace = await storage.getWorkspace(contentItem.workspaceId);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const annotations = await storage.getContentAnnotations(id, userId);
+      res.json(annotations);
+    } catch (error) {
+      console.error("Error fetching annotations:", error);
+      res.status(500).json({ message: "Failed to fetch annotations" });
+    }
+  });
+
+  app.post('/api/content/:id/annotations', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Verify access to content item
+      const contentItem = await storage.getContentItem(id);
+      if (!contentItem) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+
+      const workspace = await storage.getWorkspace(contentItem.workspaceId);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const validatedData = insertAnnotationSchema.parse({
+        ...req.body,
+        contentItemId: id,
+        userId,
+      });
+
+      const annotation = await storage.createAnnotation(validatedData);
+      res.json(annotation);
+    } catch (error) {
+      console.error("Error creating annotation:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid annotation data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create annotation" });
+    }
+  });
+
+  app.delete('/api/annotations/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      await storage.deleteAnnotation(id, userId);
+      res.json({ message: "Annotation deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting annotation:", error);
+      res.status(500).json({ message: "Failed to delete annotation" });
     }
   });
 

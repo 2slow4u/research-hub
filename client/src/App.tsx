@@ -12,6 +12,7 @@ import SummaryEditor from "@/pages/SummaryEditor";
 import AdminPanel from "@/pages/AdminPanel";
 import TelegramIntegration from "@/pages/TelegramIntegration";
 import AiModelConfig from "@/pages/AiModelConfig";
+import ArticleReader from "@/pages/ArticleReader";
 import Search from "@/pages/Search";
 import Summaries from "@/pages/Summaries";
 import Settings from "@/pages/Settings";
@@ -35,6 +36,7 @@ function Router() {
           <Route path="/settings" component={Settings} />
           <Route path="/settings/telegram" component={TelegramIntegration} />
           <Route path="/settings/ai-models" component={AiModelConfig} />
+          <Route path="/reader/:id" component={ArticleReader} />
           <Route path="/admin" component={AdminPanel} />
         </Layout>
       )}

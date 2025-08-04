@@ -1,9 +1,11 @@
 import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import SummaryModal from "@/components/Summary/SummaryModal";
 import AddContentModal from "@/components/Content/AddContentModal";
 import SourcesTab from "@/components/Sources/SourcesTab";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +24,8 @@ import {
   Trash2,
   PlayCircle,
   PauseCircle,
-  Share
+  Share,
+  BookOpen
 } from "lucide-react";
 import { ShareContentModal } from "@/components/Sharing/ShareContentModal";
 import { ShareSummaryModal } from "@/components/Sharing/ShareSummaryModal";
@@ -30,6 +33,7 @@ import { SharedContentList } from "@/components/Sharing/SharedContentList";
 
 export default function WorkspaceDetail() {
   const { id } = useParams();
+  const { toast } = useToast();
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [addContentModalOpen, setAddContentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,6 +50,36 @@ export default function WorkspaceDetail() {
   const { data: summaries, isLoading: summariesLoading } = useQuery({
     queryKey: ['/api/workspaces', id, 'summaries'],
   });
+
+  const deleteContentMutation = useMutation({
+    mutationFn: async (contentId: string) => {
+      return await apiRequest('DELETE', `/api/content/${contentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces', id, 'content'] });
+      toast({
+        title: "Content deleted",
+        description: "The article has been removed from your workspace.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error deleting content",
+        description: "Could not delete the article. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteContent = (contentId: string) => {
+    if (window.confirm('Are you sure you want to delete this article? This action cannot be undone.')) {
+      deleteContentMutation.mutate(contentId);
+    }
+  };
+
+  const handleOpenReader = (contentId: string) => {
+    window.open(`/reader/${contentId}`, '_blank');
+  };
 
   if (workspaceLoading) {
     return (
@@ -236,6 +270,14 @@ export default function WorkspaceDetail() {
                             <Badge variant="outline" className="text-xs">
                               Score: {item.relevanceScore}%
                             </Badge>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleOpenReader(item.id)}
+                              title="Read in-app with annotations"
+                            >
+                              <BookOpen className="h-4 w-4" />
+                            </Button>
                             <ShareContentModal
                               contentItemId={item.id}
                               workspaceId={id!}
@@ -252,6 +294,15 @@ export default function WorkspaceDetail() {
                                 </a>
                               </Button>
                             )}
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteContent(item.id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                              title="Delete article"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-neutral-500 dark:text-neutral-400">

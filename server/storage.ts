@@ -37,6 +37,9 @@ import {
   aiUsageLog,
   type AiUsageLog,
   type InsertAiUsageLog,
+  annotations,
+  type Annotation,
+  type InsertAnnotation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, count, sql, ne, gte } from "drizzle-orm";
@@ -120,6 +123,14 @@ export interface IStorage {
     totalCalls: number;
     byProvider: Record<string, { cost: number; tokens: number; calls: number }>;
   }>;
+
+  // Annotation operations
+  createAnnotation(annotation: InsertAnnotation): Promise<Annotation>;
+  getContentAnnotations(contentItemId: string, userId: string): Promise<Annotation[]>;
+  deleteAnnotation(annotationId: string, userId: string): Promise<void>;
+
+  // Content operations (add delete)
+  deleteContentItem(contentItemId: string, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -673,6 +684,67 @@ export class DatabaseStorage implements IStorage {
     });
 
     return stats;
+  }
+
+  // Annotation operations
+  async createAnnotation(annotation: InsertAnnotation): Promise<Annotation> {
+    const [newAnnotation] = await db
+      .insert(annotations)
+      .values(annotation)
+      .returning();
+    return newAnnotation;
+  }
+
+  async getContentAnnotations(contentItemId: string, userId: string): Promise<Annotation[]> {
+    return await db
+      .select()
+      .from(annotations)
+      .where(and(
+        eq(annotations.contentItemId, contentItemId),
+        eq(annotations.userId, userId)
+      ))
+      .orderBy(annotations.createdAt);
+  }
+
+  async deleteAnnotation(annotationId: string, userId: string): Promise<void> {
+    await db
+      .delete(annotations)
+      .where(and(
+        eq(annotations.id, annotationId),
+        eq(annotations.userId, userId)
+      ));
+  }
+
+  // Content operations
+  async deleteContentItem(contentItemId: string, userId: string): Promise<void> {
+    // First verify ownership through workspace
+    const [contentItem] = await db
+      .select({ workspaceId: contentItems.workspaceId })
+      .from(contentItems)
+      .where(eq(contentItems.id, contentItemId));
+    
+    if (!contentItem) {
+      throw new Error('Content item not found');
+    }
+
+    const [workspace] = await db
+      .select({ userId: workspaces.userId })
+      .from(workspaces)
+      .where(eq(workspaces.id, contentItem.workspaceId));
+    
+    if (!workspace || workspace.userId !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    // Delete annotations first (foreign key constraint)
+    await db
+      .delete(annotations)
+      .where(eq(annotations.contentItemId, contentItemId));
+
+    // Delete the content item
+    await db
+      .delete(contentItems)
+      .where(eq(contentItems.id, contentItemId));
   }
 }
 

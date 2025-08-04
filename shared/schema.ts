@@ -436,3 +436,37 @@ export type AiModelConfig = typeof aiModelConfigs.$inferSelect;
 export type InsertAiModelConfig = z.infer<typeof insertAiModelConfigSchema>;
 export type AiUsageLog = typeof aiUsageLog.$inferSelect;
 export type InsertAiUsageLog = z.infer<typeof insertAiUsageLogSchema>;
+
+// Annotations table for article reading
+export const annotations = pgTable("annotations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contentItemId: varchar("content_item_id").references(() => contentItems.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  type: varchar("type", { enum: ["highlight", "note", "question", "comment"] }).notNull(),
+  text: text("text").notNull(), // Selected text for highlights, or the annotation text for notes
+  content: text("content"), // User's annotation content (notes, comments, questions)
+  position: jsonb("position").notNull(), // Stores position data for text selection
+  color: varchar("color").default("#fbbf24"), // Highlight color
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const annotationsRelations = relations(annotations, ({ one }) => ({
+  contentItem: one(contentItems, {
+    fields: [annotations.contentItemId],
+    references: [contentItems.id],
+  }),
+  user: one(users, {
+    fields: [annotations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertAnnotationSchema = createInsertSchema(annotations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Annotation = typeof annotations.$inferSelect;
+export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
