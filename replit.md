@@ -48,6 +48,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 4, 2025)
 
+- **Critical Bug Fixes**: Resolved content deletion and Telegram URL preservation issues
+  - Fixed content deletion by adding proper cascade deletion for annotations before content removal
+  - Enhanced Telegram bot to properly save original URLs from messages for refresh functionality
+  - Improved refresh button to re-extract content with HTML from original source URLs
+  - Added comprehensive error handling with detailed error messages for better debugging
+  - Updated storage layer with proper annotation cleanup during content deletion
+  - Telegram-submitted content now preserves URLs for proper refresh capability
+
 - **HTML Content Rendering**: Complete implementation of rich HTML content display with image preservation
   - Added htmlContent field to contentItems schema for storing rich HTML content with images
   - Enhanced ContentExtractor service to extract and preserve HTML content alongside text content

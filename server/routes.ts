@@ -355,9 +355,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting content:", error);
-      res.status(500).json({ message: "Failed to delete content" });
+      res.status(500).json({ message: "Failed to delete content", error: error.message });
     }
   });
 

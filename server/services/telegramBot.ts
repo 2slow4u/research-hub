@@ -291,7 +291,7 @@ Need help? Visit the web app or contact support.
             content: extractedData.content,
             htmlContent: extractedData.htmlContent,
             sourceId: null, // Will be filled later if we have source mapping
-            url: extractedData.url,
+            url: urls[0], // Use the original URL from the message
             relevanceScore
           });
 

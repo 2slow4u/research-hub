@@ -247,6 +247,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteContentItem(id: string): Promise<void> {
+    // First delete all related annotations
+    await db.delete(annotations).where(eq(annotations.contentItemId, id));
+    // Then delete the content item
     await db.delete(contentItems).where(eq(contentItems.id, id));
   }
 
