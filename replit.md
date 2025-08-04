@@ -1,6 +1,6 @@
 # Overview
 
-ResearchHub is an AI-powered research management platform that helps users automatically collect, monitor, and summarize research content from various sources. The application provides workspace-based organization, intelligent content aggregation, AI-powered summarization capabilities, and comprehensive content management features for researchers and professionals.
+ResearchHub is an AI-powered research management platform that helps users automatically collect, monitor, and summarize research content from various sources. The application provides workspace-based organization, intelligent content aggregation, AI-powered summarization capabilities, comprehensive content management features, and Telegram bot integration for seamless content addition from mobile devices.
 
 # User Preferences
 
@@ -41,6 +41,18 @@ Preferred communication style: Simple, everyday language.
 - **AI Integration**: OpenAI API for content summarization and analysis using GPT-4o model
 - **Database**: Neon PostgreSQL serverless database with connection pooling
 - **Authentication**: Replit Auth service for user management and OAuth flows
+- **Telegram Integration**: node-telegram-bot-api for Telegram bot functionality and content ingestion
 - **Development Tools**: Replit-specific plugins for development environment integration
 - **UI Components**: Radix UI primitives for accessible component foundation
 - **Styling**: Tailwind CSS with custom design system variables and dark mode support
+
+## Recent Changes (August 4, 2025)
+- **Telegram Bot Integration**: Complete implementation of Telegram bot functionality
+  - Database schema updated with telegramConnections and telegramSubmissions tables
+  - TelegramBotService created with command handlers (/start, /connect, /workspaces, /help)
+  - ContentExtractor service for URL and content processing from Telegram messages
+  - Frontend TelegramIntegration page for bot configuration and submission management
+  - API routes for managing Telegram connections and retrieving submissions
+  - Navigation updated to include "Telegram Bot" link in sidebar
+  - Bot supports URL extraction, text content saving, and workspace integration
+  - User can connect Telegram account and set default workspace for content routing

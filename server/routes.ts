@@ -6,6 +6,7 @@ import { z } from "zod";
 import { insertWorkspaceSchema, insertSummarySchema } from "@shared/schema";
 import { ContentService } from "./services/contentService";
 import { SummaryService } from "./services/summaryService";
+import { telegramBot } from "./services/telegramBot";
 
 const contentService = new ContentService();
 const summaryService = new SummaryService();
@@ -462,6 +463,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error updating user role:", error);
       res.status(500).json({ message: "Failed to update user role" });
     }
+  });
+
+  // Telegram bot routes
+  app.get("/api/telegram/connection", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const connection = await storage.getTelegramConnection(userId);
+      res.json(connection || null);
+    } catch (error) {
+      console.error("Error fetching Telegram connection:", error);
+      res.status(500).json({ message: "Failed to fetch Telegram connection" });
+    }
+  });
+
+  app.post("/api/telegram/connect", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { chatId, username, defaultWorkspaceId } = req.body;
+
+      const connection = await storage.createTelegramConnection({
+        userId,
+        telegramChatId: chatId,
+        telegramUsername: username,
+        defaultWorkspaceId,
+        isActive: true
+      });
+
+      res.json(connection);
+    } catch (error) {
+      console.error("Error creating Telegram connection:", error);
+      res.status(500).json({ message: "Failed to create Telegram connection" });
+    }
+  });
+
+  app.patch("/api/telegram/connection/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      const connection = await storage.updateTelegramConnection(id, updates);
+      res.json(connection);
+    } catch (error) {
+      console.error("Error updating Telegram connection:", error);
+      res.status(500).json({ message: "Failed to update Telegram connection" });
+    }
+  });
+
+  app.get("/api/telegram/submissions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const connection = await storage.getTelegramConnection(userId);
+      
+      if (!connection) {
+        return res.json([]);
+      }
+
+      const submissions = await storage.getTelegramSubmissions(connection.id);
+      res.json(submissions);
+    } catch (error) {
+      console.error("Error fetching Telegram submissions:", error);
+      res.status(500).json({ message: "Failed to fetch Telegram submissions" });
+    }
+  });
+
+  app.get("/api/telegram/status", async (req, res) => {
+    res.json({
+      botInitialized: telegramBot.isInitialized(),
+      timestamp: new Date().toISOString()
+    });
   });
 
   const httpServer = createServer(app);

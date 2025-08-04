@@ -8,6 +8,8 @@ import {
   sharedContent,
   sharedSummaries,
   collaborativeEdits,
+  telegramConnections,
+  telegramSubmissions,
   type User,
   type UpsertUser,
   type Workspace,
@@ -25,6 +27,10 @@ import {
   type InsertSharedSummary,
   type CollaborativeEdit,
   type InsertCollaborativeEdit,
+  type TelegramConnection,
+  type InsertTelegramConnection,
+  type TelegramSubmission,
+  type InsertTelegramSubmission,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, count, sql } from "drizzle-orm";
@@ -83,6 +89,14 @@ export interface IStorage {
   getSharedSummariesForWorkspace(workspaceId: string): Promise<(SharedSummary & { summary: Summary; fromWorkspace: Workspace })[]>;
   recordCollaborativeEdit(edit: InsertCollaborativeEdit): Promise<CollaborativeEdit>;
   getCollaborativeEdits(summaryId: string): Promise<(CollaborativeEdit & { user: User })[]>;
+
+  // Telegram operations
+  getTelegramConnection(userId: string): Promise<TelegramConnection | undefined>;
+  getTelegramConnectionByChatId(chatId: string): Promise<TelegramConnection | undefined>;
+  createTelegramConnection(connection: InsertTelegramConnection): Promise<TelegramConnection>;
+  updateTelegramConnection(id: string, updates: Partial<TelegramConnection>): Promise<TelegramConnection>;
+  createTelegramSubmission(submission: InsertTelegramSubmission): Promise<TelegramSubmission>;
+  getTelegramSubmissions(connectionId: string): Promise<TelegramSubmission[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -428,6 +442,65 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(collaborativeEdits.createdAt));
     
     return result as any;
+  }
+
+  // Telegram operations
+  async getTelegramConnection(userId: string): Promise<TelegramConnection | undefined> {
+    const [connection] = await db
+      .select()
+      .from(telegramConnections)
+      .where(and(eq(telegramConnections.userId, userId), eq(telegramConnections.isActive, true)))
+      .limit(1);
+    return connection;
+  }
+
+  async getTelegramConnectionByChatId(chatId: string): Promise<TelegramConnection | undefined> {
+    const [connection] = await db
+      .select()
+      .from(telegramConnections)
+      .where(and(eq(telegramConnections.telegramChatId, chatId), eq(telegramConnections.isActive, true)))
+      .limit(1);
+    return connection;
+  }
+
+  async createTelegramConnection(connection: InsertTelegramConnection): Promise<TelegramConnection> {
+    const [newConnection] = await db
+      .insert(telegramConnections)
+      .values(connection)
+      .onConflictDoUpdate({
+        target: telegramConnections.telegramChatId,
+        set: {
+          ...connection,
+          isActive: true,
+        }
+      })
+      .returning();
+    return newConnection;
+  }
+
+  async updateTelegramConnection(id: string, updates: Partial<TelegramConnection>): Promise<TelegramConnection> {
+    const [connection] = await db
+      .update(telegramConnections)
+      .set(updates)
+      .where(eq(telegramConnections.id, id))
+      .returning();
+    return connection;
+  }
+
+  async createTelegramSubmission(submission: InsertTelegramSubmission): Promise<TelegramSubmission> {
+    const [newSubmission] = await db
+      .insert(telegramSubmissions)
+      .values(submission)
+      .returning();
+    return newSubmission;
+  }
+
+  async getTelegramSubmissions(connectionId: string): Promise<TelegramSubmission[]> {
+    return await db
+      .select()
+      .from(telegramSubmissions)
+      .where(eq(telegramSubmissions.telegramConnectionId, connectionId))
+      .orderBy(desc(telegramSubmissions.createdAt));
   }
 }
 

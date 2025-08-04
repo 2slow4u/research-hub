@@ -138,6 +138,31 @@ export const collaborativeEdits = pgTable("collaborative_edits", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Telegram bot integration tables
+export const telegramConnections = pgTable("telegram_connections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  telegramChatId: varchar("telegram_chat_id").notNull().unique(),
+  telegramUsername: varchar("telegram_username"),
+  isActive: boolean("is_active").default(true),
+  defaultWorkspaceId: varchar("default_workspace_id").references(() => workspaces.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const telegramSubmissions = pgTable("telegram_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  telegramConnectionId: varchar("telegram_connection_id").references(() => telegramConnections.id, { onDelete: 'cascade' }).notNull(),
+  workspaceId: varchar("workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  messageId: varchar("message_id").notNull(),
+  submissionType: varchar("submission_type").notNull(), // 'url', 'text', 'file'
+  originalContent: text("original_content").notNull(),
+  extractedTitle: varchar("extracted_title"),
+  extractedContent: text("extracted_content"),
+  contentItemId: varchar("content_item_id").references(() => contentItems.id),
+  status: varchar("status").default('pending'), // 'pending', 'processed', 'failed'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   workspaces: many(workspaces),
@@ -232,6 +257,33 @@ export const collaborativeEditsRelations = relations(collaborativeEdits, ({ one 
   }),
 }));
 
+export const telegramConnectionsRelations = relations(telegramConnections, ({ one, many }) => ({
+  user: one(users, {
+    fields: [telegramConnections.userId],
+    references: [users.id],
+  }),
+  defaultWorkspace: one(workspaces, {
+    fields: [telegramConnections.defaultWorkspaceId],
+    references: [workspaces.id],
+  }),
+  submissions: many(telegramSubmissions),
+}));
+
+export const telegramSubmissionsRelations = relations(telegramSubmissions, ({ one }) => ({
+  telegramConnection: one(telegramConnections, {
+    fields: [telegramSubmissions.telegramConnectionId],
+    references: [telegramConnections.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [telegramSubmissions.workspaceId],
+    references: [workspaces.id],
+  }),
+  contentItem: one(contentItems, {
+    fields: [telegramSubmissions.contentItemId],
+    references: [contentItems.id],
+  }),
+}));
+
 // Schemas
 export const insertWorkspaceSchema = createInsertSchema(workspaces).omit({
   id: true,
@@ -276,6 +328,16 @@ export const insertCollaborativeEditSchema = createInsertSchema(collaborativeEdi
   createdAt: true,
 });
 
+export const insertTelegramConnectionSchema = createInsertSchema(telegramConnections).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTelegramSubmissionSchema = createInsertSchema(telegramSubmissions).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -294,3 +356,7 @@ export type InsertSharedSummary = z.infer<typeof insertSharedSummarySchema>;
 export type SharedSummary = typeof sharedSummaries.$inferSelect;
 export type InsertCollaborativeEdit = z.infer<typeof insertCollaborativeEditSchema>;
 export type CollaborativeEdit = typeof collaborativeEdits.$inferSelect;
+export type InsertTelegramConnection = z.infer<typeof insertTelegramConnectionSchema>;
+export type TelegramConnection = typeof telegramConnections.$inferSelect;
+export type InsertTelegramSubmission = z.infer<typeof insertTelegramSubmissionSchema>;
+export type TelegramSubmission = typeof telegramSubmissions.$inferSelect;
