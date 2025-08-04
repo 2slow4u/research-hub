@@ -56,16 +56,22 @@ export default function WorkspaceDetail() {
       return await apiRequest(`/api/content/${contentId}`, 'DELETE');
     },
     onSuccess: () => {
+      // Invalidate multiple queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces', id, 'content'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces', id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      
       toast({
         title: "Content deleted",
         description: "The article has been removed from your workspace.",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Content deletion error:", error);
       toast({
         title: "Error deleting content",
-        description: "Could not delete the article. Please try again.",
+        description: error?.message || "Could not delete the article. Please try again.",
         variant: "destructive",
       });
     },

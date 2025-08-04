@@ -720,7 +720,7 @@ export class DatabaseStorage implements IStorage {
           startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           break;
       }
-      whereClause = and(whereClause, gte(aiUsageLog.createdAt, startDate));
+      whereClause = and(whereClause, gte(aiUsageLog.createdAt, startDate!));
     }
 
     const results = await db.select({
