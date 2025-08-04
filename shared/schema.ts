@@ -1,0 +1,296 @@
+import { sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
+import {
+  index,
+  jsonb,
+  pgTable,
+  timestamp,
+  varchar,
+  text,
+  integer,
+  boolean,
+  pgEnum,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").default('user'), // 'user' or 'admin'
+  mfaEnabled: boolean("mfa_enabled").default(false),
+  mfaSecret: varchar("mfa_secret"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const workspaceStatusEnum = pgEnum('workspace_status', ['active', 'paused', 'archived']);
+export const monitoringFrequencyEnum = pgEnum('monitoring_frequency', ['hourly', '6hours', 'daily', 'weekly']);
+
+export const workspaces = pgTable("workspaces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  name: varchar("name").notNull(),
+  keywords: text("keywords").array().notNull(),
+  status: workspaceStatusEnum("status").default('active'),
+  monitoringFrequency: monitoringFrequencyEnum("monitoring_frequency").default('daily'),
+  lastMonitored: timestamp("last_monitored"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const sources = pgTable("sources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  url: varchar("url").notNull(),
+  type: varchar("type").notNull(), // 'rss', 'api', 'web'
+  isWhitelisted: boolean("is_whitelisted").default(true),
+  isActive: boolean("is_active").default(true),
+  reputation: integer("reputation").default(100),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const contentItems = pgTable("content_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workspaceId: varchar("workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  sourceId: varchar("source_id").references(() => sources.id),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  url: varchar("url"),
+  publishedAt: timestamp("published_at"),
+  relevanceScore: integer("relevance_score").default(0),
+  isProcessed: boolean("is_processed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const summaryTypeEnum = pgEnum('summary_type', ['full', 'differential']);
+
+export const summaries = pgTable("summaries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workspaceId: varchar("workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  type: summaryTypeEnum("type").notNull(),
+  focus: text("focus"), // Optional focus areas
+  contentItems: text("content_items").array(), // IDs of content items included
+  version: integer("version").default(1),
+  isDeleted: boolean("is_deleted").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const activities = pgTable("activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  workspaceId: varchar("workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }),
+  type: varchar("type").notNull(), // 'content_added', 'summary_generated', 'workspace_created', etc.
+  description: text("description").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Cross-workspace sharing tables
+export const sharedContent = pgTable("shared_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contentItemId: varchar("content_item_id").references(() => contentItems.id, { onDelete: 'cascade' }).notNull(),
+  fromWorkspaceId: varchar("from_workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  toWorkspaceId: varchar("to_workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  sharedById: varchar("shared_by_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const sharedSummaries = pgTable("shared_summaries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  summaryId: varchar("summary_id").references(() => summaries.id, { onDelete: 'cascade' }).notNull(),
+  fromWorkspaceId: varchar("from_workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  toWorkspaceId: varchar("to_workspace_id").references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  sharedById: varchar("shared_by_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  notes: text("notes"),
+  isCollaborative: boolean("is_collaborative").default(false), // Can other workspace edit this summary
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const collaborativeEdits = pgTable("collaborative_edits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  summaryId: varchar("summary_id").references(() => summaries.id, { onDelete: 'cascade' }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  changeDescription: text("change_description").notNull(),
+  oldContent: text("old_content"),
+  newContent: text("new_content"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  workspaces: many(workspaces),
+  activities: many(activities),
+}));
+
+export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
+  user: one(users, {
+    fields: [workspaces.userId],
+    references: [users.id],
+  }),
+  contentItems: many(contentItems),
+  summaries: many(summaries),
+  activities: many(activities),
+}));
+
+export const contentItemsRelations = relations(contentItems, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [contentItems.workspaceId],
+    references: [workspaces.id],
+  }),
+  source: one(sources, {
+    fields: [contentItems.sourceId],
+    references: [sources.id],
+  }),
+}));
+
+export const summariesRelations = relations(summaries, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [summaries.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const activitiesRelations = relations(activities, ({ one }) => ({
+  user: one(users, {
+    fields: [activities.userId],
+    references: [users.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [activities.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const sharedContentRelations = relations(sharedContent, ({ one }) => ({
+  contentItem: one(contentItems, {
+    fields: [sharedContent.contentItemId],
+    references: [contentItems.id],
+  }),
+  fromWorkspace: one(workspaces, {
+    fields: [sharedContent.fromWorkspaceId],
+    references: [workspaces.id],
+  }),
+  toWorkspace: one(workspaces, {
+    fields: [sharedContent.toWorkspaceId],
+    references: [workspaces.id],
+  }),
+  sharedBy: one(users, {
+    fields: [sharedContent.sharedById],
+    references: [users.id],
+  }),
+}));
+
+export const sharedSummariesRelations = relations(sharedSummaries, ({ one }) => ({
+  summary: one(summaries, {
+    fields: [sharedSummaries.summaryId],
+    references: [summaries.id],
+  }),
+  fromWorkspace: one(workspaces, {
+    fields: [sharedSummaries.fromWorkspaceId],
+    references: [workspaces.id],
+  }),
+  toWorkspace: one(workspaces, {
+    fields: [sharedSummaries.toWorkspaceId],
+    references: [workspaces.id],
+  }),
+  sharedBy: one(users, {
+    fields: [sharedSummaries.sharedById],
+    references: [users.id],
+  }),
+}));
+
+export const collaborativeEditsRelations = relations(collaborativeEdits, ({ one }) => ({
+  summary: one(summaries, {
+    fields: [collaborativeEdits.summaryId],
+    references: [summaries.id],
+  }),
+  user: one(users, {
+    fields: [collaborativeEdits.userId],
+    references: [users.id],
+  }),
+}));
+
+// Schemas
+export const insertWorkspaceSchema = createInsertSchema(workspaces).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  userId: true,
+  lastMonitored: true,
+});
+
+export const insertSummarySchema = createInsertSchema(summaries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  version: true,
+  isDeleted: true,
+});
+
+export const insertContentItemSchema = createInsertSchema(contentItems).omit({
+  id: true,
+  createdAt: true,
+  relevanceScore: true,
+  isProcessed: true,
+});
+
+export const insertSourceSchema = createInsertSchema(sources).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSharedContentSchema = createInsertSchema(sharedContent).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSharedSummarySchema = createInsertSchema(sharedSummaries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCollaborativeEditSchema = createInsertSchema(collaborativeEdits).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type InsertWorkspace = z.infer<typeof insertWorkspaceSchema>;
+export type Workspace = typeof workspaces.$inferSelect;
+export type InsertSummary = z.infer<typeof insertSummarySchema>;
+export type Summary = typeof summaries.$inferSelect;
+export type InsertContentItem = z.infer<typeof insertContentItemSchema>;
+export type ContentItem = typeof contentItems.$inferSelect;
+export type InsertSource = z.infer<typeof insertSourceSchema>;
+export type Source = typeof sources.$inferSelect;
+export type Activity = typeof activities.$inferSelect;
+export type InsertSharedContent = z.infer<typeof insertSharedContentSchema>;
+export type SharedContent = typeof sharedContent.$inferSelect;
+export type InsertSharedSummary = z.infer<typeof insertSharedSummarySchema>;
+export type SharedSummary = typeof sharedSummaries.$inferSelect;
+export type InsertCollaborativeEdit = z.infer<typeof insertCollaborativeEditSchema>;
+export type CollaborativeEdit = typeof collaborativeEdits.$inferSelect;
