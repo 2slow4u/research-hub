@@ -204,6 +204,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Refresh content item with re-extraction
+  app.post('/api/content/:id/refresh', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      const content = await storage.getContentItem(id);
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+      
+      // Check if user has access to this content through workspace ownership
+      const workspace = await storage.getWorkspace(content.workspaceId);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Re-extract content if URL is available
+      if (content.url) {
+        const { ContentExtractor } = await import('./services/contentExtractor');
+        const extractor = new ContentExtractor();
+        
+        try {
+          const extractedData = await extractor.extractFromUrl(content.url);
+          
+          // Update content with newly extracted data
+          await storage.updateContentItem(id, {
+            content: extractedData.content,
+            htmlContent: extractedData.htmlContent,
+            title: extractedData.title || content.title,
+            publishedAt: extractedData.publishedAt || content.publishedAt,
+          });
+          
+          res.json({ message: "Content refreshed successfully" });
+        } catch (extractionError) {
+          console.error("Content re-extraction failed:", extractionError);
+          res.status(400).json({ message: "Failed to re-extract content from URL" });
+        }
+      } else {
+        res.status(400).json({ message: "No URL available for content re-extraction" });
+      }
+    } catch (error) {
+      console.error("Error refreshing content:", error);
+      res.status(500).json({ message: "Failed to refresh content" });
+    }
+  });
+
   // Recalculate relevance scores for workspace content
   app.post('/api/workspaces/:id/recalculate-scores', isAuthenticated, async (req: any, res) => {
     try {

@@ -254,7 +254,7 @@ export default function ArticleReader() {
               </Button>
               <div className="flex items-center space-x-2 text-sm text-neutral-500 dark:text-neutral-400">
                 <Calendar className="h-4 w-4" />
-                <span>{new Date(article.createdAt).toLocaleDateString()}</span>
+                <span>{article.createdAt ? new Date(article.createdAt).toLocaleDateString() : 'No date'}</span>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -262,10 +262,23 @@ export default function ArticleReader() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  queryClient.invalidateQueries({ queryKey: ['/api/content', id] });
-                  queryClient.invalidateQueries({ queryKey: ['/api/content', id, 'annotations'] });
+                  // Force refresh content with HTML re-extraction
+                  apiRequest(`/api/content/${id}/refresh`, 'POST').then(() => {
+                    queryClient.invalidateQueries({ queryKey: ['/api/content', id] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/content', id, 'annotations'] });
+                    toast({
+                      title: "Content refreshed",
+                      description: "Article content has been reloaded with latest formatting",
+                    });
+                  }).catch((error) => {
+                    toast({
+                      title: "Refresh failed",
+                      description: error.message || "Failed to refresh content",
+                      variant: "destructive",
+                    });
+                  });
                 }}
-                title="Refresh article"
+                title="Refresh article and re-extract content"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
