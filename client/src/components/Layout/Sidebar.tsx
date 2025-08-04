@@ -93,6 +93,53 @@ export default function Sidebar() {
           const isActive = location === item.href;
           const Icon = item.icon;
           
+          // Special handling for Workspaces item to make it expandable
+          if (item.name === 'Workspaces') {
+            return (
+              <div key={item.name}>
+                <div className="flex">
+                  <Link href={item.href} className="flex-1">
+                    <a className={`sidebar-nav-item ${isActive ? 'active' : ''} rounded-r-none`}>
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm font-medium">{item.name}</span>
+                    </a>
+                  </Link>
+                  <button
+                    onClick={() => setWorkspacesExpanded(!workspacesExpanded)}
+                    className="sidebar-nav-item px-2 rounded-l-none border-l border-neutral-200 dark:border-neutral-600"
+                  >
+                    {workspacesExpanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                
+                {workspacesExpanded && (
+                  <div className="ml-4 mt-2 space-y-1">
+                    {sortedWorkspaces.map((workspace: any) => {
+                      const isWorkspaceActive = location === `/workspace/${workspace.id}`;
+                      return (
+                        <Link key={workspace.id} href={`/workspace/${workspace.id}`}>
+                          <a className={`sidebar-nav-item text-sm ${isWorkspaceActive ? 'active' : ''}`}>
+                            <div className="w-2 h-2 bg-primary rounded-full" />
+                            <span className="text-xs font-medium truncate">{workspace.name}</span>
+                          </a>
+                        </Link>
+                      );
+                    })}
+                    {sortedWorkspaces.length === 0 && (
+                      <div className="sidebar-nav-item text-xs text-neutral-500 dark:text-neutral-400">
+                        No workspaces yet
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          }
+          
           return (
             <Link key={item.name} href={item.href}>
               <a className={`sidebar-nav-item ${isActive ? 'active' : ''}`}>
@@ -107,45 +154,6 @@ export default function Sidebar() {
             </Link>
           );
         })}
-
-        {/* Workspaces Section */}
-        <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-          <button
-            onClick={() => setWorkspacesExpanded(!workspacesExpanded)}
-            className="sidebar-nav-item w-full flex items-center justify-between"
-          >
-            <div className="flex items-center">
-              <Briefcase className="w-4 h-4" />
-              <span className="text-sm font-medium">Workspaces</span>
-            </div>
-            {workspacesExpanded ? (
-              <ChevronDown className="w-4 h-4" />
-            ) : (
-              <ChevronRight className="w-4 h-4" />
-            )}
-          </button>
-          
-          {workspacesExpanded && (
-            <div className="ml-4 mt-2 space-y-1">
-              {sortedWorkspaces.map((workspace: any) => {
-                const isActive = location === `/workspace/${workspace.id}`;
-                return (
-                  <Link key={workspace.id} href={`/workspace/${workspace.id}`}>
-                    <a className={`sidebar-nav-item text-sm ${isActive ? 'active' : ''}`}>
-                      <div className="w-2 h-2 bg-primary rounded-full" />
-                      <span className="text-xs font-medium truncate">{workspace.name}</span>
-                    </a>
-                  </Link>
-                );
-              })}
-              {sortedWorkspaces.length === 0 && (
-                <div className="sidebar-nav-item text-xs text-neutral-500 dark:text-neutral-400">
-                  No workspaces yet
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </nav>
 
       {/* Theme Toggle and Logout */}
