@@ -12,6 +12,10 @@ interface WorkspaceCardProps {
     status: 'active' | 'paused' | 'archived';
     contentCount?: number;
     summaryCount?: number;
+    _count?: {
+      contentItems: number;
+      summaries: number;
+    };
     updatedAt: string;
     createdAt: string;
   };
@@ -65,7 +69,7 @@ export default function WorkspaceCard({ workspace }: WorkspaceCardProps) {
           <div className="flex items-center justify-between text-sm">
             <span className="text-neutral-500 dark:text-neutral-400">Content Items</span>
             <span className="text-neutral-900 dark:text-neutral-100 font-medium">
-              {workspace.contentCount || 0}
+              {workspace._count?.contentItems || workspace.contentCount || 0}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
@@ -77,7 +81,7 @@ export default function WorkspaceCard({ workspace }: WorkspaceCardProps) {
           <div className="flex items-center justify-between text-sm">
             <span className="text-neutral-500 dark:text-neutral-400">Summaries</span>
             <span className="text-neutral-900 dark:text-neutral-100 font-medium">
-              {workspace.summaryCount || 0}
+              {workspace._count?.summaries || workspace.summaryCount || 0}
             </span>
           </div>
         </div>
