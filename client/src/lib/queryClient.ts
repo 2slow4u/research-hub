@@ -20,7 +20,24 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return res.json();
+  
+  // Handle responses with no content (like 204 status for DELETE)
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return null;
+  }
+
+  // Check if response has content before trying to parse JSON
+  const text = await res.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    // If it's not valid JSON, return the text as is
+    return text;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
