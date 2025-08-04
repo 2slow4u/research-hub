@@ -16,23 +16,28 @@ class TelegramBotService {
   }
 
   private async initializeBot() {
-    let token = process.env.TELEGRAM_BOT_TOKEN;
-    
-    // Temporary workaround for Replit environment caching issue
-    // Check if we have the old invalid token and use the new one
-    if (token === '8252196862:AAFSmWoU_wBdWXq4o7hYvD4NW_WZ4d0dMKk') {
-      console.log('Detected old invalid token, using new token from Replit Secrets...');
-      token = '8252196862:AAHCF5-eSLGb9v6v1e-JanyCP8sVK_VrIlc';
-    }
+    const token = process.env.TELEGRAM_BOT_TOKEN;
     
     if (!token) {
       console.log('TELEGRAM_BOT_TOKEN not provided, Telegram bot will not be available');
       return;
     }
 
-    console.log(`Attempting to initialize Telegram bot with token: ${token.substring(0, 10)}...`);
-    console.log(`Full token ends with: ...${token.substring(token.length - 10)}`);
+    console.log(`Initializing Telegram bot with token: ${token.substring(0, 10)}...`);
+    console.log(`Token status: ${token === '8252196862:AAHCF5-eSLGb9v6v1e-JanyCP8sVK_VrIlc' ? '✅ CORRECT NEW TOKEN' : '❌ Still using old invalid token'}`);
+    
+    // Temporary fallback until environment refreshes
+    if (token === '8252196862:AAFSmWoU_wBdWXq4o7hYvD4NW_WZ4d0dMKk') {
+      console.log('🔄 Using temporary valid token until environment refreshes...');
+      const validToken = '8252196862:AAHCF5-eSLGb9v6v1e-JanyCP8sVK_VrIlc';
+      await this.initializeWithToken(validToken);
+      return;
+    }
 
+    await this.initializeWithToken(token);
+  }
+
+  private async initializeWithToken(token: string) {
     try {
       // First, test if the token is valid without starting polling
       const testResponse = await fetch(`https://api.telegram.org/bot${token}/getMe`);
