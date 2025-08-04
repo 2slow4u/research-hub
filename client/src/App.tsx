@@ -33,8 +33,8 @@ function Router() {
           <Route path="/search" component={Search} />
           <Route path="/summaries" component={Summaries} />
           <Route path="/settings" component={Settings} />
-          <Route path="/telegram" component={TelegramIntegration} />
-          <Route path="/ai-config" component={AiModelConfig} />
+          <Route path="/settings/telegram" component={TelegramIntegration} />
+          <Route path="/settings/ai-models" component={AiModelConfig} />
           <Route path="/admin" component={AdminPanel} />
         </Layout>
       )}
