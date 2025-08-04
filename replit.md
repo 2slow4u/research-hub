@@ -72,9 +72,18 @@ Preferred communication style: Simple, everyday language.
 - **Article Reader Improvements**: Enhanced in-app article reading experience
   - Fixed backend API routes for content item retrieval and management
   - Added missing database operations for content items and annotations
-  - Improved text formatting with dangerouslySetInnerHTML and line break preservation
+  - Improved text formatting with pre-line CSS for proper line break preservation
   - Simplified annotation system to only use highlight and comment functions
   - Fixed comment input functionality with proper event handling and click outside detection
   - Added refresh button to reload article content and annotations
   - Enhanced tooltip interaction to show after text selection without right-click conflicts
   - Improved UI stability with proper CSS classes for annotation forms
+  - Fixed annotation deletion to update UI immediately without page refresh
+  - Enhanced comment form stability to stay open while typing until Save/Cancel is clicked
+
+- **Export System Enhancement**: Improved data export functionality
+  - Changed export format from JSON to Markdown for better readability
+  - Structured Markdown export with workspace name, export date, and article count
+  - Individual articles formatted with titles, sources, publication dates, relevance scores
+  - Clean separation between articles with horizontal rules
+  - Proper Markdown formatting with headers, links, and emphasis

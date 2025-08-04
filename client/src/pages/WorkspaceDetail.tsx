@@ -84,26 +84,45 @@ export default function WorkspaceDetail() {
   const handleExportContent = () => {
     if (!content || content.length === 0) return;
     
-    const exportData = {
-      workspace: workspace?.name || 'Workspace',
-      exportedAt: new Date().toISOString(),
-      content: content.map((item: any) => ({
-        title: item.title,
-        url: item.url,
-        content: item.content,
-        publishedAt: item.publishedAt,
-        createdAt: item.createdAt,
-        relevanceScore: item.relevanceScore
-      }))
-    };
+    const exportDate = new Date().toLocaleDateString();
+    const workspaceName = workspace?.name || 'Workspace';
     
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-      type: 'application/json' 
+    // Generate Markdown content
+    let markdownContent = `# ${workspaceName} Export\n\n`;
+    markdownContent += `**Exported on:** ${exportDate}\n`;
+    markdownContent += `**Total articles:** ${content.length}\n\n`;
+    markdownContent += `---\n\n`;
+    
+    content.forEach((item: any, index: number) => {
+      markdownContent += `## ${index + 1}. ${item.title || 'Untitled'}\n\n`;
+      
+      if (item.url) {
+        markdownContent += `**Source:** [${item.url}](${item.url})\n\n`;
+      }
+      
+      if (item.publishedAt) {
+        markdownContent += `**Published:** ${new Date(item.publishedAt).toLocaleDateString()}\n\n`;
+      }
+      
+      if (item.relevanceScore) {
+        markdownContent += `**Relevance Score:** ${item.relevanceScore}\n\n`;
+      }
+      
+      if (item.content) {
+        markdownContent += `### Content\n\n`;
+        markdownContent += `${item.content}\n\n`;
+      }
+      
+      markdownContent += `---\n\n`;
+    });
+    
+    const blob = new Blob([markdownContent], { 
+      type: 'text/markdown' 
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${workspace?.name || 'workspace'}-export-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `${workspace?.name || 'workspace'}-export-${new Date().toISOString().split('T')[0]}.md`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -111,7 +130,7 @@ export default function WorkspaceDetail() {
     
     toast({
       title: "Export completed",
-      description: `Exported ${content.length} content items to JSON file.`,
+      description: `Exported ${content.length} content items to Markdown file.`,
     });
   };
 
