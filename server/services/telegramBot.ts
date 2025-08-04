@@ -215,11 +215,12 @@ Need help? Visit the web app or contact support.
       // Create submission record
       const submission = await storage.createTelegramSubmission({
         telegramConnectionId: connection.id,
+        workspaceId: connection.defaultWorkspaceId || 'default',
+        messageId: msg.message_id.toString(),
         submissionType,
         originalContent: content,
         extractedTitle: extractedData?.title || content.substring(0, 100),
         extractedContent: extractedData?.content,
-        extractedMetadata: extractedData ? JSON.stringify(extractedData) : null,
         status: 'processed'
       });
 
@@ -247,11 +248,9 @@ Need help? Visit the web app or contact support.
             workspaceId: connection.defaultWorkspaceId,
             title: extractedData.title,
             content: extractedData.content,
-            source: extractedData.source || 'telegram-bot',
+            sourceId: null, // Will be filled later if we have source mapping
             url: extractedData.url,
-            summary: extractedData.summary,
-            relevanceScore,
-            metadata: extractedData
+            relevanceScore
           });
 
           this.bot?.sendMessage(chatId, `✅ Content added to your workspace: "${extractedData.title}"`);

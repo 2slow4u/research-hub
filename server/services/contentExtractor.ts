@@ -3,6 +3,9 @@ import { JSDOM } from 'jsdom';
 export interface ExtractedContent {
   title: string;
   content: string;
+  url?: string;
+  source?: string;
+  summary?: string;
   publishedAt?: Date;
   author?: string;
   excerpt?: string;
