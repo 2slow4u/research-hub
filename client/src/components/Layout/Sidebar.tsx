@@ -1,6 +1,8 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { 
   FlaskConical, 
   Home, 
@@ -10,7 +12,10 @@ import {
   Shield, 
   Moon, 
   Sun, 
-  LogOut
+  LogOut,
+  Briefcase,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -18,6 +23,12 @@ export default function Sidebar() {
   const { user } = useAuth();
   const { theme, setTheme, effectiveTheme } = useTheme();
   const [location] = useLocation();
+  const [workspacesExpanded, setWorkspacesExpanded] = useState(false);
+
+  // Fetch user workspaces
+  const { data: workspaces } = useQuery({
+    queryKey: ['/api/workspaces'],
+  });
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -29,6 +40,7 @@ export default function Sidebar() {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'Workspaces', href: '/workspaces', icon: Briefcase },
     { name: 'Search & Monitor', href: '/search', icon: Search },
     { name: 'Summaries', href: '/summaries', icon: FileText },
     { name: 'Settings', href: '/settings', icon: Settings },
@@ -37,6 +49,11 @@ export default function Sidebar() {
   if (user?.role === 'admin') {
     navigation.push({ name: 'Admin Panel', href: '/admin', icon: Shield });
   }
+
+  // Sort workspaces alphabetically
+  const sortedWorkspaces = workspaces?.sort((a: any, b: any) => 
+    a.name.localeCompare(b.name)
+  ) || [];
 
   return (
     <div className="w-64 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 flex flex-col">
@@ -90,6 +107,45 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Workspaces Section */}
+        <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+          <button
+            onClick={() => setWorkspacesExpanded(!workspacesExpanded)}
+            className="sidebar-nav-item w-full flex items-center justify-between"
+          >
+            <div className="flex items-center">
+              <Briefcase className="w-4 h-4" />
+              <span className="text-sm font-medium">Workspaces</span>
+            </div>
+            {workspacesExpanded ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+          
+          {workspacesExpanded && (
+            <div className="ml-4 mt-2 space-y-1">
+              {sortedWorkspaces.map((workspace: any) => {
+                const isActive = location === `/workspace/${workspace.id}`;
+                return (
+                  <Link key={workspace.id} href={`/workspace/${workspace.id}`}>
+                    <a className={`sidebar-nav-item text-sm ${isActive ? 'active' : ''}`}>
+                      <div className="w-2 h-2 bg-primary rounded-full" />
+                      <span className="text-xs font-medium truncate">{workspace.name}</span>
+                    </a>
+                  </Link>
+                );
+              })}
+              {sortedWorkspaces.length === 0 && (
+                <div className="sidebar-nav-item text-xs text-neutral-500 dark:text-neutral-400">
+                  No workspaces yet
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* Theme Toggle and Logout */}
