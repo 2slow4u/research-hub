@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Workspaces from "@/pages/Workspaces";
 import Archive from "@/pages/Archive";
 import WorkspaceDetail from "@/pages/WorkspaceDetail";
+import WorkspaceEdit from "@/pages/WorkspaceEdit";
 import SummaryEditor from "@/pages/SummaryEditor";
 import AdminPanel from "@/pages/AdminPanel";
 import TelegramIntegration from "@/pages/TelegramIntegration";
@@ -34,6 +35,7 @@ function Router() {
           <Route path="/workspaces" component={Workspaces} />
           <Route path="/archive" component={Archive} />
           <Route path="/workspace/:id" component={WorkspaceDetail} />
+          <Route path="/workspace/:id/edit" component={WorkspaceEdit} />
           <Route path="/summary/:id" component={SummaryEditor} />
           <Route path="/search" component={Search} />
           <Route path="/summaries" component={Summaries} />

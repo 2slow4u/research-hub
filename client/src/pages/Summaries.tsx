@@ -13,7 +13,7 @@ export default function SummariesPage() {
             View and manage all your research summaries
           </p>
         </div>
-        <Link to="/">
+        <Link href="/">
           <Button className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             New Summary
@@ -30,7 +30,7 @@ export default function SummariesPage() {
           <p className="text-gray-600 dark:text-gray-400 text-center mb-4">
             This page will show all your research summaries with search, filtering, and export capabilities.
           </p>
-          <Link to="/">
+          <Link href="/">
             <Button className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Create Summary from Dashboard

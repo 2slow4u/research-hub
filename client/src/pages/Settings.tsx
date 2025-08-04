@@ -96,7 +96,7 @@ export default function SettingsPage() {
                     Configure your Telegram bot integration to add research content directly from Telegram messages.
                   </p>
                 </div>
-                <Link to="/settings/telegram">
+                <Link href="/settings/telegram">
                   <Button variant="outline">
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Configure
@@ -161,7 +161,7 @@ export default function SettingsPage() {
                     Connect your own OpenAI, Anthropic, or Google AI accounts to control costs and choose the best models for your needs.
                   </p>
                 </div>
-                <Link to="/settings/ai-models">
+                <Link href="/settings/ai-models">
                   <Button variant="outline">
                     <Cpu className="h-4 w-4 mr-2" />
                     Manage AI Models
