@@ -23,14 +23,12 @@ class TelegramBotService {
       return;
     }
 
-    console.log(`Initializing Telegram bot with token: ${token.substring(0, 10)}...`);
-    console.log(`Token status: ${token === '8252196862:AAHCF5-eSLGb9v6v1e-JanyCP8sVK_VrIlc' ? '✅ CORRECT NEW TOKEN' : '❌ Still using old invalid token'}`);
-    
-    // Temporary fallback until environment refreshes
+    console.log(`Initializing Telegram bot with token: ${token.substring(0, 10)}...${token.substring(token.length - 6)}`);
+
+    // Handle environment variable caching - use valid token until environment refreshes
     if (token === '8252196862:AAFSmWoU_wBdWXq4o7hYvD4NW_WZ4d0dMKk') {
-      console.log('🔄 Using temporary valid token until environment refreshes...');
-      const validToken = '8252196862:AAHCF5-eSLGb9v6v1e-JanyCP8sVK_VrIlc';
-      await this.initializeWithToken(validToken);
+      console.log('Environment still has old token, using valid token until refresh...');
+      await this.initializeWithToken('8252196862:AAHCF5-eSLGb9v6v1e-JanyCP8sVK_VrIlc');
       return;
     }
 
