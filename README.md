@@ -19,6 +19,7 @@ ResearchHub is a comprehensive AI-powered research management platform that help
 
 ### Enhanced User Experience
 - **Visual Annotation System**: Direct text highlighting and commenting with color-coded indicators
+- **Content Management**: Advanced move/copy system for organizing content across workspaces
 - **Mobile Integration**: Telegram bot (@researchHubBot) for seamless content submission
 - **Export Capabilities**: Export workspace content in structured Markdown format
 - **Dark Mode Support**: Beautiful light and dark themes with system preference detection
@@ -151,6 +152,7 @@ npm run dev
 - **Telegram Connections**: User account linking for mobile integration
 - **Telegram Submissions**: Content submitted via mobile bot
 - **Sessions**: PostgreSQL-backed session storage for security
+- **Content Operations**: Move/copy system for cross-workspace content management
 
 ## 🔌 Key API Endpoints
 
@@ -173,6 +175,8 @@ npm run dev
 - `GET /api/content/:id` - Individual content item with annotations
 - `POST /api/content/:id/annotations` - Add text highlights and comments
 - `DELETE /api/annotations/:id` - Remove annotations
+- `POST /api/content/:id/move` - Move content between workspaces
+- `POST /api/content/:id/copy` - Copy content to other workspaces
 
 ### AI & Summarization
 - `GET /api/ai-model-configs` - List configured AI providers
@@ -187,12 +191,26 @@ npm run dev
 
 ## 🎯 Recent Major Updates
 
-### Archive System Enhancement (Latest)
+### System Architecture Cleanup (Latest)
+- Complete removal of legacy sharing system components and database tables
+- Streamlined codebase with modern move/copy content management
+- Enhanced error handling and UI refresh system for immediate updates
+- Cleaned backend routes and storage methods for better maintainability
+- Comprehensive code audit ensuring no leftover functionality
+
+### Archive System Enhancement
 - Complete workspace lifecycle management with archive/restore functionality
 - Monitoring control: archive stops content monitoring, restore resumes it
 - User-friendly terminology: "restore" instead of "unarchive" throughout
 - Comprehensive activity logging for archive/restore actions
 - Enhanced navigation with dedicated Archive page
+
+### Security & Secrets Management
+- Comprehensive SECURITY.md with security guidelines and best practices
+- Enhanced .gitignore to prevent any secret files from being committed
+- Secure environment configuration with .env.example and .env.template
+- Updated setup instructions emphasizing Replit Secrets over file-based config
+- Added incident response procedures for compromised tokens
 
 ### Visual Annotation System
 - Direct text highlighting with persistent visual indicators
@@ -206,17 +224,11 @@ npm run dev
 - Secure API key management with masked display
 - Default provider selection for seamless operations
 
-### Telegram Bot Integration
-- Complete mobile content submission via @researchHubBot
-- Automatic URL extraction and content processing
-- Workspace routing for organized content addition
-- Command-based interface (/start, /connect, /workspaces, /help)
-
-### Enhanced Navigation System
-- Expandable workspace navigation with alphabetical sorting
-- Smart workspace overview page with statistics
-- Individual workspace quick access links
-- Improved route management with comprehensive audit
+### Enhanced Content Management
+- Modern move/copy system replacing legacy sharing functionality
+- Immediate UI updates with forced cache refresh
+- Content operations with comprehensive activity logging
+- Streamlined workspace content organization
 
 ## 🚢 Deployment
 
