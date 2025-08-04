@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { isUnauthorizedError } from "@/lib/authUtils";
 import { MessageCircle, Bot, Link, CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 export default function TelegramIntegration() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAuthenticated, isLoading } = useAuth();
   const [connectForm, setConnectForm] = useState({
     chatId: "",
     username: "",
@@ -43,7 +46,15 @@ export default function TelegramIntegration() {
   // Connect Telegram mutation
   const connectMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/telegram/connect", "POST", data);
+      console.log('Connecting with data:', data);
+      try {
+        const result = await apiRequest("/api/telegram/connect", "POST", data);
+        console.log('Connection result:', result);
+        return result;
+      } catch (error) {
+        console.error('Connection error details:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -54,6 +65,18 @@ export default function TelegramIntegration() {
       setConnectForm({ chatId: "", username: "", defaultWorkspaceId: "" });
     },
     onError: (error: any) => {
+      console.error('Mutation error:', error);
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to connect Telegram. Redirecting...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 1500);
+        return;
+      }
       toast({
         title: "Connection failed",
         description: error.message || "Failed to connect Telegram bot",
@@ -84,6 +107,16 @@ export default function TelegramIntegration() {
   });
 
   const handleConnect = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to connect Telegram",
+        variant: "destructive",
+      });
+      window.location.href = "/api/login";
+      return;
+    }
+
     if (!connectForm.chatId) {
       toast({
         title: "Chat ID required",
@@ -130,6 +163,38 @@ export default function TelegramIntegration() {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-neutral-200 dark:bg-neutral-700 rounded w-1/4 mb-4"></div>
+          <div className="h-32 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div className="text-center py-12">
+          <Bot className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+            Authentication Required
+          </h2>
+          <p className="text-neutral-500 dark:text-neutral-400 mb-6">
+            Please log in to configure your Telegram bot integration
+          </p>
+          <Button onClick={() => window.location.href = "/api/login"}>
+            Log In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
