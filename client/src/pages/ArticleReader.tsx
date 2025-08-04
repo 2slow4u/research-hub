@@ -10,8 +10,6 @@ import {
   ArrowLeft, 
   Highlighter, 
   MessageCircle, 
-  HelpCircle, 
-  StickyNote,
   Trash2,
   ExternalLink,
   Calendar,
@@ -34,7 +32,7 @@ export default function ArticleReader() {
   const { toast } = useToast();
   const [showTooltip, setShowTooltip] = useState<AnnotationTooltip | null>(null);
   const [annotationForm, setAnnotationForm] = useState<{
-    type: "highlight" | "note" | "question" | "comment";
+    type: "highlight" | "comment";
     content: string;
     color: string;
   } | null>(null);
@@ -126,7 +124,7 @@ export default function ArticleReader() {
     };
   }, [annotationForm]);
 
-  const handleCreateAnnotation = (type: "highlight" | "note" | "question" | "comment") => {
+  const handleCreateAnnotation = (type: "highlight" | "comment") => {
     if (!showTooltip) return;
 
     const position = {
@@ -151,7 +149,7 @@ export default function ArticleReader() {
       setAnnotationForm({
         type,
         content: "",
-        color: type === "note" ? "#3b82f6" : type === "question" ? "#ef4444" : "#10b981",
+        color: "#10b981",
       });
     }
   };
@@ -182,18 +180,14 @@ export default function ArticleReader() {
   const getAnnotationIcon = (type: string) => {
     switch (type) {
       case "highlight": return <Highlighter className="h-4 w-4" />;
-      case "note": return <StickyNote className="h-4 w-4" />;
-      case "question": return <HelpCircle className="h-4 w-4" />;
       case "comment": return <MessageCircle className="h-4 w-4" />;
-      default: return <StickyNote className="h-4 w-4" />;
+      default: return <MessageCircle className="h-4 w-4" />;
     }
   };
 
   const getAnnotationColor = (type: string) => {
     switch (type) {
       case "highlight": return "bg-yellow-200 dark:bg-yellow-800";
-      case "note": return "bg-blue-200 dark:bg-blue-800";
-      case "question": return "bg-red-200 dark:bg-red-800";
       case "comment": return "bg-green-200 dark:bg-green-800";
       default: return "bg-gray-200 dark:bg-gray-800";
     }
@@ -278,7 +272,7 @@ export default function ArticleReader() {
                 <div 
                   ref={contentRef}
                   className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed"
-                  style={{ userSelect: 'text' }}
+                  style={{ userSelect: 'text', whiteSpace: 'pre-wrap' }}
                 >
                   {article.content}
                 </div>
@@ -358,22 +352,6 @@ export default function ArticleReader() {
               title="Highlight"
             >
               <Highlighter className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleCreateAnnotation("note")}
-              title="Add Note"
-            >
-              <StickyNote className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleCreateAnnotation("question")}
-              title="Ask Question"
-            >
-              <HelpCircle className="h-4 w-4" />
             </Button>
             <Button
               size="sm"
