@@ -53,7 +53,7 @@ export default function WorkspaceDetail() {
 
   const deleteContentMutation = useMutation({
     mutationFn: async (contentId: string) => {
-      return await apiRequest('DELETE', `/api/content/${contentId}`);
+      return await apiRequest(`/api/content/${contentId}`, 'DELETE');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workspaces', id, 'content'] });

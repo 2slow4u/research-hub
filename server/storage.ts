@@ -63,7 +63,8 @@ export interface IStorage {
   createContentItem(item: InsertContentItem): Promise<ContentItem>;
   bulkAddContentItems(items: InsertContentItem[]): Promise<ContentItem[]>;
   getContentSinceDate(workspaceId: string, date: Date): Promise<ContentItem[]>;
-  deleteContentItem(id: string): Promise<void>;
+  updateContentItem(id: string, updates: Partial<ContentItem>): Promise<ContentItem>;
+  deleteContentItem(id: string, userId: string): Promise<void>;
   updateContentRelevanceScore(id: string, score: number): Promise<ContentItem>;
   
   // Summary operations
@@ -246,12 +247,7 @@ export class DatabaseStorage implements IStorage {
     return contentItem;
   }
 
-  async deleteContentItem(id: string): Promise<void> {
-    // First delete all related annotations
-    await db.delete(annotations).where(eq(annotations.contentItemId, id));
-    // Then delete the content item
-    await db.delete(contentItems).where(eq(contentItems.id, id));
-  }
+
 
   // Summary operations
   async getWorkspaceSummaries(workspaceId: string): Promise<Summary[]> {

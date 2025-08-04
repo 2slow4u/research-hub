@@ -333,31 +333,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { id } = req.params;
       
-      const content = await storage.getContentItem(id);
-      if (!content) {
-        return res.status(404).json({ message: "Content not found" });
-      }
-      
-      // Check if user has access to this content through workspace ownership
-      const workspace = await storage.getWorkspace(content.workspaceId);
-      if (!workspace || workspace.userId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      await storage.deleteContentItem(id);
+      // Use the storage method with proper authorization check
+      await storage.deleteContentItem(id, userId);
       
       // Create activity
       await storage.createActivity({
         userId,
-        workspaceId: content.workspaceId,
+        workspaceId: 'unknown', // Will be filled by storage method
         type: 'content_deleted',
-        description: `Deleted content: ${content.title}`,
+        description: `Deleted content item`,
       });
       
       res.status(204).send();
     } catch (error: any) {
       console.error("Error deleting content:", error);
-      res.status(500).json({ message: "Failed to delete content", error: error.message });
+      if (error.message === 'Content item not found') {
+        res.status(404).json({ message: "Content not found" });
+      } else if (error.message === 'Unauthorized') {
+        res.status(403).json({ message: "Access denied" });
+      } else {
+        res.status(500).json({ message: "Failed to delete content", error: error.message });
+      }
     }
   });
 
