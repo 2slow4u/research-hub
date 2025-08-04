@@ -78,7 +78,41 @@ export default function WorkspaceDetail() {
   };
 
   const handleOpenReader = (contentId: string) => {
-    window.open(`/reader/${contentId}`, '_blank');
+    window.location.href = `/reader/${contentId}`;
+  };
+
+  const handleExportContent = () => {
+    if (!content || content.length === 0) return;
+    
+    const exportData = {
+      workspace: workspace?.name || 'Workspace',
+      exportedAt: new Date().toISOString(),
+      content: content.map((item: any) => ({
+        title: item.title,
+        url: item.url,
+        content: item.content,
+        publishedAt: item.publishedAt,
+        createdAt: item.createdAt,
+        relevanceScore: item.relevanceScore
+      }))
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
+      type: 'application/json' 
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${workspace?.name || 'workspace'}-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export completed",
+      description: `Exported ${content.length} content items to JSON file.`,
+    });
   };
 
   if (workspaceLoading) {
@@ -215,7 +249,12 @@ export default function WorkspaceDetail() {
                     Add Content
                   </Button>
                   
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleExportContent}
+                    disabled={!content || content.length === 0}
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </Button>

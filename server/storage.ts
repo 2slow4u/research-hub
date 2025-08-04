@@ -58,10 +58,12 @@ export interface IStorage {
   
   // Content operations
   getWorkspaceContent(workspaceId: string, limit?: number): Promise<ContentItem[]>;
+  getContentItem(id: string): Promise<ContentItem | undefined>;
   addContentItem(item: InsertContentItem): Promise<ContentItem>;
   createContentItem(item: InsertContentItem): Promise<ContentItem>;
   bulkAddContentItems(items: InsertContentItem[]): Promise<ContentItem[]>;
   getContentSinceDate(workspaceId: string, date: Date): Promise<ContentItem[]>;
+  deleteContentItem(id: string): Promise<void>;
   
   // Summary operations
   getWorkspaceSummaries(workspaceId: string): Promise<Summary[]>;
@@ -223,6 +225,19 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(contentItems.createdAt));
+  }
+
+  async getContentItem(id: string): Promise<ContentItem | undefined> {
+    const [contentItem] = await db
+      .select()
+      .from(contentItems)
+      .where(eq(contentItems.id, id))
+      .limit(1);
+    return contentItem;
+  }
+
+  async deleteContentItem(id: string): Promise<void> {
+    await db.delete(contentItems).where(eq(contentItems.id, id));
   }
 
   // Summary operations

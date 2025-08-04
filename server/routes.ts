@@ -180,6 +180,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single content item
+  app.get('/api/content/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      const content = await storage.getContentItem(id);
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+      
+      // Check if user has access to this content through workspace ownership
+      const workspace = await storage.getWorkspace(content.workspaceId);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching content:", error);
+      res.status(500).json({ message: "Failed to fetch content" });
+    }
+  });
+
   // Content ingestion routes
   app.post('/api/workspaces/:id/content', isAuthenticated, async (req: any, res) => {
     try {
@@ -232,6 +256,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error adding content:", error);
       res.status(500).json({ message: "Failed to add content" });
+    }
+  });
+
+  // Delete content item
+  app.delete('/api/content/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      const content = await storage.getContentItem(id);
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+      
+      // Check if user has access to this content through workspace ownership
+      const workspace = await storage.getWorkspace(content.workspaceId);
+      if (!workspace || workspace.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await storage.deleteContentItem(id);
+      
+      // Create activity
+      await storage.createActivity({
+        userId,
+        workspaceId: content.workspaceId,
+        type: 'content_deleted',
+        description: `Deleted content: ${content.title}`,
+      });
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting content:", error);
+      res.status(500).json({ message: "Failed to delete content" });
     }
   });
 
