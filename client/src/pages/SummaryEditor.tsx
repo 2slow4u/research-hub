@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
-import Sidebar from "@/components/Layout/Sidebar";
 import SummaryCanvas from "@/components/Summary/SummaryCanvas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,12 +95,9 @@ export default function SummaryEditor() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-50 dark:bg-neutral-900">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-6 py-4">
+    <div className="flex flex-col h-full overflow-hidden bg-neutral-50 dark:bg-neutral-900">
+      {/* Header */}
+      <header className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1">
               <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
@@ -217,10 +213,10 @@ export default function SummaryEditor() {
               Share
             </Button>
           </div>
-        </header>
+      </header>
 
-        {/* Editor */}
-        <main className="flex-1 overflow-hidden">
+      {/* Editor */}
+      <main className="flex-1 overflow-hidden">
           <SummaryCanvas 
             summary={summary}
             onContentChange={(content) => {
@@ -228,8 +224,7 @@ export default function SummaryEditor() {
               setTimeout(() => handleSave(content), 1000);
             }}
           />
-        </main>
-      </div>
+      </main>
     </div>
   );
 }
